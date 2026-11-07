@@ -108,5 +108,3 @@ class FakeTransport:
         else:
             raise AssertionError(path)
         return self.change(method, suffix, result)
-
-

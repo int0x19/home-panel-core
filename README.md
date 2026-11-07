@@ -46,3 +46,7 @@ history is the subtree of `custom_components/home_panel/panel_config`; earlier
 history before those models moved from scripts remains in the firmware repo.
 The shared JS and synthetic acceptance fixtures were transferred in this split.
 No upstream remote or public package publication has been configured.
+
+Split acceptance: 34 installed-wheel tests pass, including loopback HTTP.
+Firmware consumers also pass their native C++/LVGL parity checks; HA source and
+the self-contained release ZIP are tested in the separate companion repository.
