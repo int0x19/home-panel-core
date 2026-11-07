@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "csrf": "11111111111111111111111111111111",
+  "session_id": "11111111111111111111111111111111",
+  "revision": 1,
+  "max_bytes": 16384,
+  "sd_ready": true,
+  "busy": false,
+  "features": ["validate.v1", "export.v1"],
+  "export_lifetime_ms": 60000,
+  "restarting": false,
+  "dispatch_enabled": false,
+  "loaded_source": "builtin",
+  "loaded_revision": 17,
+  "active": {"present": false, "valid": false, "status": 0, "model_status": 0, "bytes": 0, "revision": 0, "sha256": ""},
+  "candidate": {"present": false, "valid": false, "status": 0, "model_status": 0, "bytes": 0, "revision": 0, "sha256": ""},
+  "backup": {"present": false, "valid": false, "status": 0, "model_status": 0, "bytes": 0, "revision": 0, "sha256": ""},
+  "temporary": {"present": false, "valid": false, "status": 0, "model_status": 0, "bytes": 0, "revision": 0, "sha256": ""}
+}

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "home-panel-core"
+version = "0.1.0"
+description = "Shared Home Panel configuration model, validation and read/check protocol"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+http = ["aiohttp>=3.9,<4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+home_panel_core = ["assets/*.mjs", "testing_data/*.json"]
