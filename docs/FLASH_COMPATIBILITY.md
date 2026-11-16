@@ -12,6 +12,12 @@ a card. Legacy status without `storage` retains its SD-based meaning. Explicit
 `sd-files` readiness must agree with `sd_ready`. Storage kind/readiness changes
 during a read/check transaction invalidate the result.
 
+The flash profile also carries `storage_generation` as a canonical unsigned
+64-bit decimal string. Forward it unchanged in `X-Panel-Storage-Generation`
+for export/validate POSTs; never convert it through a JavaScript number. Missing,
+malformed and out-of-range values are rejected before a POST. A generation
+change during a transaction invalidates its result as well.
+
 No upload, recovery, apply or household action is added. Existing factory-ID,
 session, capability, byte-limit, filename and SHA-256 guards remain mandatory.
 Pairing still does not mean managed deployment is available. Status/capabilities

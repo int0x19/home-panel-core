@@ -41,11 +41,13 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(legacy.storage_ready, legacy.sd_ready)
         for source in ("builtin", "flash-confirmed", "flash-previous", "flash-trial"):
             raw = deepcopy(FakeTransport(with_capabilities=True).state)
-            raw.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source=source)
+            raw.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source=source,
+                       storage_generation="9007199254740993")
             raw["features"].append("flash-maintenance.v1")
             parsed = RuntimeStatus.parse(raw)
             self.assertEqual(parsed.loaded_source, source)
             self.assertTrue(parsed.storage_ready)
+            self.assertEqual(parsed.storage_generation, "9007199254740993")
             self.assertFalse(parsed.sd_ready or parsed.management_ready)
 
     def test_storage_profile_is_explicit_and_typed(self):
@@ -61,8 +63,18 @@ class ProtocolTests(unittest.TestCase):
         with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
         raw["storage"] = "flash-nvs"
         with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
-        raw.update(storage_ready=True, loaded_source="file")
+        raw.update(storage_ready=True, storage_generation="62", loaded_source="file")
         with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+
+    def test_flash_generation_must_be_a_canonical_uint64_string(self):
+        for generation in (None, 0, True, "", "01", "+1", "-1", "1.0", "18446744073709551616", "\u0661"):
+            raw = deepcopy(FakeTransport(with_capabilities=True).state)
+            raw.update(storage="flash-nvs", storage_ready=True, storage_generation=generation)
+            raw["features"].append("flash-maintenance.v1")
+            with self.subTest(generation=generation), self.assertRaises(ProtocolError):
+                RuntimeStatus.parse(raw)
+        raw["storage_generation"] = "18446744073709551615"
+        self.assertEqual(RuntimeStatus.parse(raw).storage_generation, "18446744073709551615")
 
     def test_invalid_files_can_be_reported_but_valid_metadata_must_be_consistent(self):
         state = json.loads(STATUS.read_bytes())
@@ -145,7 +157,8 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_flash_snapshot_and_exact_export_work_without_sd(self):
         fake = FakeTransport(with_capabilities=True)
-        fake.state.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source="flash-confirmed")
+        fake.state.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source="flash-confirmed",
+                          storage_generation="9007199254740993")
         fake.state["features"].append("flash-maintenance.v1")
         client = PanelConfigClient(fake, TOKEN)
         snapshot = await client.snapshot()
@@ -154,12 +167,16 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         for source in Source:
             exported = await client.export(source)
             self.assertEqual(exported.data, fake.documents[source])
+        self.assertTrue((await client.validate(fake.documents[Source.ACTIVE])).valid)
+        for method, _path, headers, *_ in fake.calls:
+            if method == "POST":
+                self.assertEqual(headers["X-Panel-Storage-Generation"], "9007199254740993")
         self.assertTrue(all(path in {API + "export", API + "validate"}
                             for method, path, *_ in fake.calls if method == "POST"))
 
     async def test_unavailable_flash_never_submits_an_export(self):
         fake = FakeTransport(with_capabilities=True)
-        fake.state.update(storage="flash-nvs", storage_ready=False, sd_ready=False)
+        fake.state.update(storage="flash-nvs", storage_ready=False, sd_ready=False, storage_generation="62")
         fake.state["features"].append("flash-maintenance.v1")
         with self.assertRaises(PanelHTTPError) as error:
             await PanelConfigClient(fake, TOKEN).export()

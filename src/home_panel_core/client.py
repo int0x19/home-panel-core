@@ -35,6 +35,8 @@ class PanelConfigClient:
         headers = {"Authorization": "Bearer " + self._token, "Accept": "application/json"}
         if state is not None:
             headers["X-Panel-Settings"] = state.session_id
+            if method == "POST" and state.storage == "flash-nvs":
+                headers["X-Panel-Storage-Generation"] = state.storage_generation
         if body is not None:
             headers["Content-Type"] = "application/json"
             if raw:

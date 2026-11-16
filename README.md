@@ -74,7 +74,7 @@ Split acceptance: 34 installed-wheel tests pass, including loopback HTTP.
 Firmware consumers also pass their native C++/LVGL parity checks; HA source and
 the self-contained release ZIP are tested in the separate companion repository.
 
-Flash compatibility acceptance: 38 installed-wheel tests pass, including
+Flash compatibility acceptance: 39 installed-wheel tests pass, including
 loopback HTTP, explicit profile validation and export without SD. A read-only
 snapshot also passes against the deployed flash-confirmed ESP32. No OTA or
 configuration/device command was performed for that snapshot.

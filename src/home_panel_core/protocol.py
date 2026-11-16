@@ -189,6 +189,7 @@ class RuntimeStatus:
     device_id: str | None = None
     storage: str = "sd-files"
     storage_available: bool | None = None
+    storage_generation: str | None = None
 
     @property
     def storage_ready(self) -> bool:
@@ -225,11 +226,17 @@ class RuntimeStatus:
         if storage not in ("sd-files", "flash-nvs"):
             raise ProtocolError("Unsupported configuration storage")
         storage_ready = sd_ready
+        generation = None
         loaded_sources = {"builtin", "file", "backup"}
         if storage == "flash-nvs":
             if "flash-maintenance.v1" not in features:
                 raise ProtocolError("Flash storage feature is unavailable")
             storage_ready = boolean(value.get("storage_ready"), "storage status")
+            generation = value.get("storage_generation")
+            if (not isinstance(generation, str) or not 1 <= len(generation) <= 20 or
+                    not generation.isascii() or not generation.isdecimal() or
+                    (len(generation) > 1 and generation[0] == "0") or int(generation) > 2**64 - 1):
+                raise ProtocolError("Invalid flash storage generation")
             loaded_sources = {"builtin", "flash-confirmed", "flash-previous", "flash-trial"}
         elif "storage_ready" in value:
             storage_ready = boolean(value["storage_ready"], "storage status")
@@ -246,7 +253,7 @@ class RuntimeStatus:
                    boolean(value.get("dispatch_enabled"), "dispatch status"), loaded,
                    integer(value.get("loaded_revision"), "loaded document revision", maximum=UINT32_MAX), lifetime,
                    tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id,
-                   storage, storage_ready)
+                   storage, storage_ready, generation)
 
 
 @dataclass(frozen=True)

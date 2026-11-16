@@ -75,6 +75,8 @@ class FakeTransport:
         elif method == "POST":
             assert suffix in {"export", "validate"}
             assert headers["X-Panel-Settings"] == self.state["session_id"]
+            if self.state.get("storage") == "flash-nvs":
+                assert headers["X-Panel-Storage-Generation"] == self.state["storage_generation"]
             self.next_id += 1
             result = {"id": self.next_id, "done": False, "status": 202,
                 "session_id": self.state["session_id"], "revision": self.state["revision"], "error": ""}
