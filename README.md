@@ -45,7 +45,8 @@ Extracted from `esp32panel` commit `b72b70f` on 2026-11-07. The initial Git
 history is the subtree of `custom_components/home_panel/panel_config`; earlier
 history before those models moved from scripts remains in the firmware repo.
 The shared JS and synthetic acceptance fixtures were transferred in this split.
-No upstream remote or public package publication has been configured.
+The GitHub origin is prepared as `https://github.com/int0x19/home-panel-core.git`;
+no public repository, GitHub release or PyPI publication was created here.
 
 ## GitHub Distribution
 
