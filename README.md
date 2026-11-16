@@ -47,6 +47,20 @@ history before those models moved from scripts remains in the firmware repo.
 The shared JS and synthetic acceptance fixtures were transferred in this split.
 No upstream remote or public package publication has been configured.
 
+## GitHub Distribution
+
+The prepared GitHub destination is `int0x19/home-panel-core`; repository creation
+and public publication are separate owner actions. This library is **not** a
+Marketplace integration. Users install `home-panel-ha`, whose release bundles
+the pinned core automatically, without PyPI or an extra Marketplace entry.
+
+The package workflow builds/tests a wheel on pushes and pull requests. A tag
+matching `project.version` exactly (initially `0.1.0`, without a `v` prefix)
+prepares a **draft**, not published, GitHub release with the wheel attached.
+Review licensing and release notes before publishing. No PyPI credentials or
+publication are required. The HA repository locks the source commit separately
+in `core-source.json`; update that lock explicitly when upgrading core.
+
 Split acceptance: 34 installed-wheel tests pass, including loopback HTTP.
 Firmware consumers also pass their native C++/LVGL parity checks; HA source and
 the self-contained release ZIP are tested in the separate companion repository.
