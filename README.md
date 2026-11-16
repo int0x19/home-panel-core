@@ -3,7 +3,7 @@
 Shared Python package for Home Panel firmware tools and the Home Assistant
 companion. This repository is the canonical source for models/profiles,
 resolved-style validation, no-scroll row planning, canonical JSON, the bounded
-read/check client/protocol and the browser's immutable action-draft logic.
+read/check client/protocol and the browser's immutable room/action/sensor draft logic.
 
 Python >=3.13. No Home Assistant, ESPHome, YAML, templates or hardware dependency
 is needed. The optional `http` extra supplies aiohttp for standalone HTTP use;
@@ -16,7 +16,7 @@ configuration or calls household services.
 python -m venv .venv
 .venv/bin/python -m pip install setuptools wheel
 .venv/bin/python -m pip wheel --no-deps --no-build-isolation --wheel-dir dist .
-.venv/bin/python -m pip install --no-deps dist/home_panel_core-0.1.0-py3-none-any.whl
+.venv/bin/python -m pip install --no-deps dist/home_panel_core-0.1.2-py3-none-any.whl
 .venv/bin/python -m unittest discover -s tests -v
 # Optional loopback HTTP tests:
 .venv/bin/python -m pip install '.[http]'
@@ -34,6 +34,10 @@ The firmware repository retains native C++/LVGL cross-language acceptance.
 
 ## Compatibility
 
+Core 0.1.2 adds [shared numeric-sensor/group edits](docs/SENSOR_DRAFT.md),
+including mixed-row fit guards. It keeps schema/protocol v1, does not advertise
+new device capabilities and does not add a configuration writer.
+
 Core 0.1.1 adds read/check compatibility with the deployed internal-flash
 configuration storage. Flash pairing/export no longer requires an SD card;
 legacy SD status is still supported. See [flash compatibility](docs/FLASH_COMPATIBILITY.md).
@@ -49,13 +53,13 @@ Extracted from `esp32panel` commit `b72b70f` on 2026-11-07. The initial Git
 history is the subtree of `custom_components/home_panel/panel_config`; earlier
 history before those models moved from scripts remains in the firmware repo.
 The shared JS and synthetic acceptance fixtures were transferred in this split.
-The GitHub origin is prepared as `https://github.com/int0x19/home-panel-core.git`;
-no public repository, GitHub release or PyPI publication was created here.
+The public GitHub origin is `https://github.com/int0x19/home-panel-core.git`.
+Core 0.1.1 is bundled in published HA release 0.1.1; local development toward
+0.1.2 is not yet a published release. No PyPI publication is required.
 
 ## GitHub Distribution
 
-The prepared GitHub destination is `int0x19/home-panel-core`; repository creation
-and public publication are separate owner actions. This library is **not** a
+The GitHub repository is `int0x19/home-panel-core`. This library is **not** a
 Marketplace integration. Users install `home-panel-ha`, whose release bundles
 the pinned core automatically, without PyPI or an extra Marketplace entry.
 
@@ -78,3 +82,7 @@ Flash compatibility acceptance: 39 installed-wheel tests pass, including
 loopback HTTP, explicit profile validation and export without SD. A read-only
 snapshot also passes against the deployed flash-confirmed ESP32. No OTA or
 configuration/device command was performed for that snapshot.
+
+Shared sensor-draft acceptance: 49 source tests pass, including the ten
+Node-driven draft cases and loopback HTTP. Device-family acceptance and
+downstream HA/native rendering checks are separate consumer gates.

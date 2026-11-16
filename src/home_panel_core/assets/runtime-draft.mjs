@@ -1,6 +1,7 @@
 // Logical edits only. The shared native validator remains authoritative.
-const OWNED_FEATURES = ['widget.action', 'action-pages.v1', 'script-controls.v1'];
+const OWNED_FEATURES = ['widget.action', 'action-pages.v1', 'script-controls.v1', 'widget.sensor', 'sensor-groups.v1'];
 const ACTION_FIELDS = new Set(['entity', 'name', 'icon', 'interaction', 'enabled', 'allow_stop']);
+const SENSOR_FIELDS = new Set(['entity', 'name', 'unit', 'device_class', 'group']);
 const ENTITY = /^(script|scene|button|input_button)\.[a-z0-9_]+$/;
 const ID = /^[a-z_][a-z0-9_]{0,63}$/;
 export class DraftError extends Error {
@@ -21,6 +22,8 @@ export function normalizedDraft(document) {
   doc.requires = [...new Set([...doc.requires.filter(f => !OWNED_FEATURES.includes(f)),
     ...(doc.rooms.some(r => r.widgets.some(w => w.type === 'action')) ? ['widget.action'] : []),
     ...(doc.rooms.some(r => r.kind === 'actions') ? ['action-pages.v1'] : []),
+    ...(doc.rooms.some(r => r.widgets.some(w => w.type === 'sensor')) ? ['widget.sensor'] : []),
+    ...(doc.rooms.some(r => Object.keys(r.groups).length) ? ['sensor-groups.v1'] : []),
     ...(doc.rooms.some(r => r.widgets.some(w => w.type === 'action' && Object.hasOwn(w.settings, 'allow_stop'))) ? ['script-controls.v1'] : [])])].sort();
   return doc;
 }
@@ -43,12 +46,40 @@ export function editableAction(widget, caps) {
     ENTITY.test(widget.settings.entity) && (!widget.settings.icon || caps.validation.action_icons.includes(widget.settings.icon)) &&
     (!widget.settings.interaction || caps.validation.interactions.includes(widget.settings.interaction));
 }
-function text(value, maximum) {
-  if (typeof value !== 'string' || !value.trim() || /[\x00-\x1f\x7f-\x9f]/.test(value) ||
+function text(value, maximum, empty = false) {
+  if (typeof value !== 'string' || (!empty && !value.trim()) || /[\x00-\x1f\x7f-\x9f]/.test(value) ||
       [...value].some(c => c.length === 1 && c.charCodeAt(0) >= 0xd800 && c.charCodeAt(0) <= 0xdfff) ||
       new TextEncoder().encode(value).length > maximum) fail('text');
 }
 function feature(caps, name) { if (!caps.features.includes(name)) fail('capability'); }
+function sensorSettings(settings, caps) {
+  feature(caps, 'widget.sensor');
+  if (!caps.widget_types.includes('sensor')) fail('capability');
+  if (!settings || Object.keys(settings).some(k => !SENSOR_FIELDS.has(k))) fail('sensor_fields');
+  text(settings.name, caps.limits.string_bytes);
+  if (!/^sensor\.[a-z0-9_]+$/.test(settings.entity) || settings.entity.length > 127) fail('entity');
+  if (Object.hasOwn(settings, 'unit')) text(settings.unit, caps.limits.string_bytes, true);
+  if (Object.hasOwn(settings, 'device_class')) text(settings.device_class, caps.limits.string_bytes);
+  if (Object.hasOwn(settings, 'group')) {
+    feature(caps, 'sensor-groups.v1');
+    if (!ID.test(settings.group)) fail('group');
+  }
+}
+export function editableSensor(widget, caps) {
+  if (widget?.type !== 'sensor' || Object.keys(widget).some(k => !['id', 'type', 'settings'].includes(k))) return false;
+  try { sensorSettings(widget.settings, caps); return true; } catch { return false; }
+}
+function knownGroups(room, caps) {
+  for (const [id, group] of Object.entries(room.groups)) {
+    feature(caps, 'sensor-groups.v1');
+    if (!ID.test(id) || !group || Array.isArray(group) || Object.keys(group).some(k => k !== 'name') ||
+        !room.widgets.some(w => w.type === 'sensor' && w.settings.group === id)) fail('opaque_room');
+    if (Object.hasOwn(group, 'name')) text(group.name, caps.limits.string_bytes);
+  }
+}
+export function editableRoom(room, caps) {
+  try { knownRoom(room, caps); return true; } catch { return false; }
+}
 function actionSettings(settings, caps) {
   if (!settings || Object.keys(settings).some(k => !ACTION_FIELDS.has(k))) fail('action_fields');
   text(settings.name, caps.limits.string_bytes);
@@ -60,8 +91,54 @@ function actionSettings(settings, caps) {
     if (!settings.entity.startsWith('script.') || typeof settings.allow_stop !== 'boolean') fail('action_fields');
   }
 }
-function knownRoom(room) {
-  if (!['room', 'actions'].includes(room.kind || 'room') || Object.keys(room.groups).length || room.widgets.some(w => w.type !== 'action')) fail('opaque_room');
+function knownRoom(room, caps) {
+  if (!['room', 'actions'].includes(room.kind || 'room') ||
+      Object.keys(room).some(k => !['id', 'name', 'kind', 'groups', 'widgets'].includes(k)) ||
+      room.widgets.some(w => !editableAction(w, caps) && !editableSensor(w, caps))) fail('opaque_room');
+  knownGroups(room, caps);
+  if (room.kind === 'actions' && (Object.keys(room.groups).length || room.widgets.some(w => w.type !== 'action'))) fail('opaque_room');
+}
+// This is a logical fit guard, parity-tested against Python planning and native
+// decoding. It never substitutes a browser layout for the shared LVGL renderer.
+export function roomPlan(document, room, caps) {
+  if (!editableRoom(room, caps)) return null;
+  const s = document.style.layout;
+  const capacity = actionCapacity(document);
+  const available = 480 - 2 * s.page_padding - s.header_height - s.nav_button_height -
+    2 * s.control_row_padding - s.page_gap - s.navigation_gap;
+  if (room.kind === 'actions') return {available, height:0, capacity,
+    pages:Math.max(1, Math.ceil(room.widgets.length / (capacity || 1)))};
+  const keys = ['sensor_group_columns', 'sensor_group_height', 'entity_card_height', 'sensor_icon_size',
+    'sensor_value_gap', 'normal_text_height', 'small_text_height', 'control_gap', 'sensor_group_padding'];
+  if (keys.some(k => !Number.isInteger(s[k]) || s[k] < 0 || s[k] > 4096) ||
+      s.sensor_group_columns < 1 || s.sensor_group_columns > 6) fail('geometry');
+  const heights = [], consumed = new Set();
+  for (let i = 0; i < room.widgets.length; i++) {
+    if (consumed.has(i)) continue;
+    const widget = room.widgets[i];
+    if (widget.type === 'sensor' && widget.settings.group) {
+      const id = widget.settings.group, named = Object.hasOwn(room.groups, id) && !!room.groups[id].name;
+      const members = room.widgets.map((w, index) => w.type === 'sensor' && w.settings.group === id ? index : -1).filter(index => index >= 0);
+      const columns = named ? Math.min(2, s.sensor_group_columns) : s.sensor_group_columns;
+      for (let start = 0; start < members.length; start += columns) {
+        const n = Math.min(columns, members.length - start);
+        const minimum = n * (s.sensor_icon_size + s.sensor_value_gap + Math.floor((n > 3 ? s.small_text_height : s.normal_text_height) / 2)) + n - 1 +
+          (2 * n - 2 + Number(named)) * s.control_gap + (named ? 2 * s.normal_text_height : 0);
+        if (minimum > 320 - 2 * (s.page_padding + s.sensor_group_padding)) fail('geometry');
+        heights.push(s.sensor_group_height);
+      }
+      members.forEach(index => consumed.add(index));
+    } else if (widget.type === 'action') {
+      let count = 1;
+      while (count < s.light_tile_columns && room.widgets[i + count]?.type === 'action') count++;
+      for (let offset = 1; offset < count; offset++) consumed.add(i + offset);
+      heights.push(s.light_card_height);
+    } else heights.push(s.entity_card_height);
+  }
+  return {available, height:heights.reduce((n, h) => n + h, 0) + Math.max(0, heights.length - 1) * s.card_gap, pages:1, capacity};
+}
+function pruneGroup(room, id) {
+  if (id && !room.widgets.some(w => w.type === 'sensor' && w.settings.group === id)) delete room.groups[id];
 }
 export function assertDraftBudget(doc, caps) {
   if (doc.rooms.length < 1 || doc.rooms.length > caps.limits.rooms) fail('room_limit');
@@ -70,12 +147,15 @@ export function assertDraftBudget(doc, caps) {
   const capacity = actionCapacity(doc);
   let pages = 0;
   for (const room of doc.rooms) {
-    if (room.widgets.some(w => w.type !== 'action') || Object.keys(room.groups).length) { pages++; continue; }
-    if (!capacity && room.widgets.length) fail('geometry');
-    if (room.kind !== 'actions' && room.widgets.length > capacity) fail('room_full');
-    pages += room.kind === 'actions' ? Math.max(1, Math.ceil(room.widgets.length / (capacity || 1))) : 1;
+    const plan = roomPlan(doc, room, caps);
+    if (!plan) { pages++; continue; }
+    if (!capacity && room.widgets.some(w => w.type === 'action')) fail('geometry');
+    if (room.kind !== 'actions' && plan.height > plan.available) fail('room_full');
+    pages += plan.pages;
   }
   if (pages > caps.limits.room_pages) fail('page_limit');
+  if (doc.rooms.every(r => editableRoom(r, caps)) && Number.isInteger(caps.limits.entity_bindings) &&
+      new Set(doc.rooms.flatMap(r => r.widgets.map(w => w.settings.entity))).size > caps.limits.entity_bindings) fail('binding_limit');
   if (new TextEncoder().encode(JSON.stringify(doc)).length > caps.limits.document_bytes) fail('byte_limit');
 }
 
@@ -95,9 +175,10 @@ export function editDraft(document, operation, caps) {
     case 'room_settings':
       text(operation.name, caps.limits.string_bytes);
       if ((room.kind || 'room') !== operation.kind) {
-        knownRoom(room);
+        knownRoom(room, caps);
         if (!['room', 'actions'].includes(operation.kind)) fail('capability');
         feature(caps, operation.kind === 'actions' ? 'action-pages.v1' : 'rooms.v1');
+        if (operation.kind === 'actions' && room.widgets.some(w => w.type !== 'action')) fail('sensor_page');
         if (operation.kind === 'actions') room.kind = 'actions'; else delete room.kind;
       }
       room.name = operation.name;
@@ -108,7 +189,7 @@ export function editDraft(document, operation, caps) {
       break;
     }
     case 'delete_room':
-      knownRoom(room);
+      knownRoom(room, caps);
       if (doc.attention?.sources?.some(s => s.room === room.id)) fail('referenced_room');
       doc.rooms.splice(doc.rooms.indexOf(room), 1);
       break;
@@ -127,7 +208,7 @@ export function editDraft(document, operation, caps) {
       if (operation.previous && !editableAction(previous, caps)) fail('opaque_action');
       const target = doc.rooms.find(r => r.id === operation.target);
       if (!target) fail('missing');
-      knownRoom(target);
+      knownRoom(target, caps);
       const id = previous?.id || operation.id;
       if (!ID.test(id)) fail('identity');
       if (target.widgets.some(w => w !== previous && (w.id === id || w.settings.entity === operation.settings.entity))) fail('duplicate');
@@ -135,6 +216,45 @@ export function editDraft(document, operation, caps) {
       widget.settings = structuredClone(operation.settings);
       const oldIndex = previous ? room.widgets.indexOf(previous) : -1;
       if (previous) room.widgets.splice(oldIndex, 1);
+      if (previous && target === room) target.widgets.splice(oldIndex, 0, widget); else target.widgets.push(widget);
+      break;
+    }
+    case 'move_sensor':
+    case 'delete_sensor': {
+      const index = room.widgets.findIndex(w => w.id === operation.id);
+      if (index < 0 || !editableSensor(room.widgets[index], caps)) fail('opaque_sensor');
+      knownRoom(room, caps);
+      const group = room.widgets[index].settings.group;
+      if (operation.type === 'move_sensor') move(room.widgets, index, index + operation.offset);
+      else { room.widgets.splice(index, 1); pruneGroup(room, group); }
+      break;
+    }
+    case 'put_sensor': {
+      sensorSettings(operation.settings, caps);
+      knownRoom(room, caps);
+      const previous = operation.previous ? room.widgets.find(w => w.id === operation.previous) : null;
+      if (operation.previous && !editableSensor(previous, caps)) fail('opaque_sensor');
+      const target = doc.rooms.find(r => r.id === operation.target);
+      if (!target) fail('missing');
+      knownRoom(target, caps);
+      if (target.kind === 'actions') fail('sensor_page');
+      const id = previous?.id || operation.id;
+      if (!ID.test(id)) fail('identity');
+      if (target.widgets.some(w => w !== previous && (w.id === id || w.settings.entity === operation.settings.entity))) fail('duplicate');
+      const group = operation.settings.group;
+      if (Object.hasOwn(operation, 'group_name')) {
+        if (!group) fail('group');
+        text(operation.group_name, caps.limits.string_bytes, true);
+      }
+      const definition = group ? structuredClone(Object.hasOwn(target.groups, group) ? target.groups[group] :
+        Object.hasOwn(room.groups, group) ? room.groups[group] : {}) : null;
+      if (definition && Object.hasOwn(operation, 'group_name')) {
+        if (operation.group_name) definition.name = operation.group_name; else delete definition.name;
+      }
+      const oldIndex = previous ? room.widgets.indexOf(previous) : -1;
+      if (previous) { room.widgets.splice(oldIndex, 1); pruneGroup(room, previous.settings.group); }
+      if (group) Object.defineProperty(target.groups, group, {value:definition, enumerable:true, writable:true, configurable:true});
+      const widget = {id, type:'sensor', settings:structuredClone(operation.settings)};
       if (previous && target === room) target.widgets.splice(oldIndex, 0, widget); else target.widgets.push(widget);
       break;
     }
