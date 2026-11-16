@@ -35,6 +35,35 @@ class ProtocolTests(unittest.TestCase):
                 state = json.loads(STATUS.read_bytes()); state[key] = value
                 RuntimeStatus.parse(state)
 
+    def test_flash_sources_do_not_require_sd_and_legacy_status_remains_supported(self):
+        legacy = RuntimeStatus.parse(json.loads(STATUS.read_bytes()))
+        self.assertEqual(legacy.storage, "sd-files")
+        self.assertEqual(legacy.storage_ready, legacy.sd_ready)
+        for source in ("builtin", "flash-confirmed", "flash-previous", "flash-trial"):
+            raw = deepcopy(FakeTransport(with_capabilities=True).state)
+            raw.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source=source)
+            raw["features"].append("flash-maintenance.v1")
+            parsed = RuntimeStatus.parse(raw)
+            self.assertEqual(parsed.loaded_source, source)
+            self.assertTrue(parsed.storage_ready)
+            self.assertFalse(parsed.sd_ready or parsed.management_ready)
+
+    def test_storage_profile_is_explicit_and_typed(self):
+        for patch in ({"storage": "unknown"}, {"storage": []}, {"storage_ready": 1},
+                      {"storage_ready": False}, {"loaded_source": "flash-confirmed"},
+                      {"storage": "flash-nvs", "storage_ready": True}):
+            raw = deepcopy(FakeTransport(with_capabilities=True).state)
+            raw.update(patch)
+            with self.subTest(patch=patch), self.assertRaises(ProtocolError):
+                RuntimeStatus.parse(raw)
+        raw = deepcopy(FakeTransport(with_capabilities=True).state)
+        raw["features"].append("flash-maintenance.v1")
+        with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+        raw["storage"] = "flash-nvs"
+        with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+        raw.update(storage_ready=True, loaded_source="file")
+        with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+
     def test_invalid_files_can_be_reported_but_valid_metadata_must_be_consistent(self):
         state = json.loads(STATUS.read_bytes())
         state["active"].update(present=True, bytes=2**32, status=4)
@@ -113,6 +142,29 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.valid); self.assertEqual(result.status, 400)
         with self.assertRaises(ValueError): await self.client.validate(b"x" * 16385)
         self.assertEqual(sum(method == "POST" for method, *_ in self.transport.calls), 2)
+
+    async def test_flash_snapshot_and_exact_export_work_without_sd(self):
+        fake = FakeTransport(with_capabilities=True)
+        fake.state.update(storage="flash-nvs", storage_ready=True, sd_ready=False, loaded_source="flash-confirmed")
+        fake.state["features"].append("flash-maintenance.v1")
+        client = PanelConfigClient(fake, TOKEN)
+        snapshot = await client.snapshot()
+        self.assertTrue(snapshot.status.storage_ready)
+        self.assertFalse(snapshot.status.sd_ready or snapshot.capabilities.management_ready)
+        for source in Source:
+            exported = await client.export(source)
+            self.assertEqual(exported.data, fake.documents[source])
+        self.assertTrue(all(path in {API + "export", API + "validate"}
+                            for method, path, *_ in fake.calls if method == "POST"))
+
+    async def test_unavailable_flash_never_submits_an_export(self):
+        fake = FakeTransport(with_capabilities=True)
+        fake.state.update(storage="flash-nvs", storage_ready=False, sd_ready=False)
+        fake.state["features"].append("flash-maintenance.v1")
+        with self.assertRaises(PanelHTTPError) as error:
+            await PanelConfigClient(fake, TOKEN).export()
+        self.assertEqual(error.exception.status, 503)
+        self.assertFalse(any(method == "POST" for method, *_ in fake.calls))
 
     async def test_missing_features_busy_and_missing_source_never_submit(self):
         for key, value, expected in (("features", [], ProtocolError), ("busy", True, PanelHTTPError),

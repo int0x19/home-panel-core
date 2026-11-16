@@ -187,6 +187,12 @@ class RuntimeStatus:
     export_lifetime_ms: int | None
     files: tuple[FileInfo, ...]
     device_id: str | None = None
+    storage: str = "sd-files"
+    storage_available: bool | None = None
+
+    @property
+    def storage_ready(self) -> bool:
+        return self.sd_ready if self.storage_available is None else self.storage_available
 
     @property
     def management_ready(self) -> bool:
@@ -214,15 +220,33 @@ class RuntimeStatus:
         lifetime = value.get("export_lifetime_ms")
         if "export.v1" in features:
             lifetime = integer(lifetime, "export lifetime", 1)
+        sd_ready = boolean(value.get("sd_ready"), "SD status")
+        storage = value.get("storage", "sd-files")
+        if storage not in ("sd-files", "flash-nvs"):
+            raise ProtocolError("Unsupported configuration storage")
+        storage_ready = sd_ready
+        loaded_sources = {"builtin", "file", "backup"}
+        if storage == "flash-nvs":
+            if "flash-maintenance.v1" not in features:
+                raise ProtocolError("Flash storage feature is unavailable")
+            storage_ready = boolean(value.get("storage_ready"), "storage status")
+            loaded_sources = {"builtin", "flash-confirmed", "flash-previous", "flash-trial"}
+        elif "storage_ready" in value:
+            storage_ready = boolean(value["storage_ready"], "storage status")
+            if storage_ready != sd_ready:
+                raise ProtocolError("SD and configuration storage status disagree")
+        if "flash-maintenance.v1" in features and storage != "flash-nvs":
+            raise ProtocolError("Flash storage profile is missing")
         loaded = value.get("loaded_source")
-        if not isinstance(loaded, str) or loaded not in {"builtin", "file", "backup"}:
+        if not isinstance(loaded, str) or loaded not in loaded_sources:
             raise ProtocolError("Invalid loaded source")
         return cls(session, integer(value.get("revision"), "operation revision"), maximum,
-                   frozenset(features), boolean(value.get("sd_ready"), "SD status"),
+                   frozenset(features), sd_ready,
                    boolean(value.get("busy"), "busy status"), boolean(value.get("restarting"), "restart status"),
                    boolean(value.get("dispatch_enabled"), "dispatch status"), loaded,
                    integer(value.get("loaded_revision"), "loaded document revision", maximum=UINT32_MAX), lifetime,
-                   tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id)
+                   tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id,
+                   storage, storage_ready)
 
 
 @dataclass(frozen=True)

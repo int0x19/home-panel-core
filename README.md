@@ -34,6 +34,10 @@ The firmware repository retains native C++/LVGL cross-language acceptance.
 
 ## Compatibility
 
+Core 0.1.1 adds read/check compatibility with the deployed internal-flash
+configuration storage. Flash pairing/export no longer requires an SD card;
+legacy SD status is still supported. See [flash compatibility](docs/FLASH_COMPATIBILITY.md).
+
 Package releases and logical JSON schema versions are independent. Version
 0.1.0 preserves schema/protocol v1 and the previous canonical encoding. HA host
 validation is not a certificate of current ESP32 assets, memory, authority or
@@ -69,3 +73,8 @@ Apache-2.0; see [LICENSE](LICENSE). Copyright 2026 Denis and contributors.
 Split acceptance: 34 installed-wheel tests pass, including loopback HTTP.
 Firmware consumers also pass their native C++/LVGL parity checks; HA source and
 the self-contained release ZIP are tested in the separate companion repository.
+
+Flash compatibility acceptance: 38 installed-wheel tests pass, including
+loopback HTTP, explicit profile validation and export without SD. A read-only
+snapshot also passes against the deployed flash-confirmed ESP32. No OTA or
+configuration/device command was performed for that snapshot.

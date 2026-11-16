@@ -145,7 +145,7 @@ class PanelConfigClient:
                 state = await self._status()
                 self._ready(state, "export.v1")
                 info = state.file(source)
-                if not state.sd_ready:
+                if not state.storage_ready:
                     raise PanelHTTPError(503)
                 if not info.valid:
                     raise PanelHTTPError(409 if info.present else 404)

@@ -31,6 +31,6 @@ class ModelTests(unittest.TestCase):
             with self.assertRaises(ValueError): decode_document(raw)
 
     def test_packaged_asset_and_version(self):
-        self.assertEqual(home_panel_core.__version__, "0.1.0")
+        self.assertEqual(home_panel_core.__version__, "0.1.1")
         self.assertIn("export function", home_panel_core.asset_path("runtime-draft.mjs").read_text())
         with self.assertRaises(ValueError): home_panel_core.asset_path("../secrets.yaml")

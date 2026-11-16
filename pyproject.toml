@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "home-panel-core"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shared Home Panel configuration model, validation and read/check protocol"
 readme = "README.md"
 license = "Apache-2.0"
