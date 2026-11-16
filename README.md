@@ -12,6 +12,9 @@ configuration or calls household services.
 
 ## Build And Test
 
+Node >=20 is required for the shared JS draft tests; CI checks its presence so
+that those cases cannot silently skip. No browser is required by core tests.
+
 ```sh
 python -m venv .venv
 .venv/bin/python -m pip install setuptools wheel
@@ -86,3 +89,6 @@ configuration/device command was performed for that snapshot.
 Shared sensor-draft acceptance: 49 source tests pass, including the ten
 Node-driven draft cases and loopback HTTP. Device-family acceptance and
 downstream HA/native rendering checks are separate consumer gates.
+The subsequent consumer checks pass 212 HA tests and actual Linux C++/LVGL
+sensor-edit acceptance, including the browser-exported JSON. Core 0.1.2
+remains a local development version, not a published Marketplace upgrade.

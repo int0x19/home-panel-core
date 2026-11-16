@@ -33,3 +33,11 @@ Python planner and cover atomic failures, opaque data, UTF-8, group-title
 changes, prototype-like IDs, feature/inventory gates and repeated bindings.
 Core's 49-test suite, including loopback HTTP, passes. This is source-level
 logical acceptance, not installed HA/ESP32 rendering or deployment acceptance.
+
+Consumer acceptance: HA's 212-test suite checks the scoped catalog, form,
+checkpoints and independent Python validation. Firmware host tests send the
+edited JSON through the existing C++ general decoder/shared LVGL renderer and
+require the strict action-only decoder to reject it. The actual browser
+checkpoint (5995 bytes, revision 41 in the fixture) renders with mock readings
+and no overflow or dispatched command. Both consumers pin the same 0.1.2 wheel;
+the physical configuration API and managed-deployment gates are unchanged.
