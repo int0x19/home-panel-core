@@ -61,6 +61,10 @@ Review licensing and release notes before publishing. No PyPI credentials or
 publication are required. The HA repository locks the source commit separately
 in `core-source.json`; update that lock explicitly when upgrading core.
 
+## License
+
+Apache-2.0; see [LICENSE](LICENSE). Copyright 2026 Denis and contributors.
+
 Split acceptance: 34 installed-wheel tests pass, including loopback HTTP.
 Firmware consumers also pass their native C++/LVGL parity checks; HA source and
 the self-contained release ZIP are tested in the separate companion repository.
