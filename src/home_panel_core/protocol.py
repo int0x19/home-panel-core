@@ -190,6 +190,7 @@ class RuntimeStatus:
     storage: str = "sd-files"
     storage_available: bool | None = None
     storage_generation: str | None = None
+    write_base_sha256: str | None = None
 
     @property
     def storage_ready(self) -> bool:
@@ -244,6 +245,12 @@ class RuntimeStatus:
                 raise ProtocolError("SD and configuration storage status disagree")
         if "flash-maintenance.v1" in features and storage != "flash-nvs":
             raise ProtocolError("Flash storage profile is missing")
+        write_base = None
+        if "write-base.v1" in features:
+            if storage != "flash-nvs" or "write_base_sha256" not in value:
+                raise ProtocolError("Missing flash write-base profile")
+            if value["write_base_sha256"] is not None:
+                write_base = digest(value["write_base_sha256"])
         loaded = value.get("loaded_source")
         if not isinstance(loaded, str) or loaded not in loaded_sources:
             raise ProtocolError("Invalid loaded source")
@@ -253,7 +260,7 @@ class RuntimeStatus:
                    boolean(value.get("dispatch_enabled"), "dispatch status"), loaded,
                    integer(value.get("loaded_revision"), "loaded document revision", maximum=UINT32_MAX), lifetime,
                    tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id,
-                   storage, storage_ready, generation)
+                   storage, storage_ready, generation, write_base)
 
 
 @dataclass(frozen=True)

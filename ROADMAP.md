@@ -28,6 +28,11 @@
 - [ ] Keep transport, canonical JSON and edit logic interoperable across
   explicitly supported consumer releases; never add generic service dispatch or
   hardware/network credentials to runtime JSON.
+- [x] Prepare typed `write-base.v1` status and read/check freshness checks in
+  development 0.1.2. Reject malformed tokens and changed bases at the same
+  generation without replay; preserve legacy read-only compatibility. Core
+  source passes 52 tests. The firmware enforces the condition at its own writer;
+  persistent ownership and HA Send/Apply remain separate. See [write base](docs/WRITE_BASE.md).
 
 HA registry/editor work belongs to home-panel-ha. Native renderers, physical
 capacity, storage recovery and OTA acceptance belong to the firmware repository.

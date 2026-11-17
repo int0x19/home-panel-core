@@ -76,6 +76,27 @@ class ProtocolTests(unittest.TestCase):
         raw["storage_generation"] = "18446744073709551615"
         self.assertEqual(RuntimeStatus.parse(raw).storage_generation, "18446744073709551615")
 
+    def test_write_base_is_explicit_typed_and_does_not_enable_writes(self):
+        raw = deepcopy(FakeTransport(with_capabilities=True).state)
+        raw.update(storage="flash-nvs", storage_ready=True, sd_ready=False, storage_generation="62",
+                   write_base_sha256="a" * 64)
+        raw["features"].extend(["flash-maintenance.v1", "write-base.v1"])
+        parsed = RuntimeStatus.parse(raw)
+        self.assertEqual(parsed.write_base_sha256, "a" * 64)
+        self.assertFalse(parsed.management_ready)
+        for value in (False, 12, "", "A" * 64, "a" * 63, []):
+            raw["write_base_sha256"] = value
+            with self.subTest(value=value), self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+        raw["write_base_sha256"] = None
+        self.assertIsNone(RuntimeStatus.parse(raw).write_base_sha256)
+        del raw["write_base_sha256"]
+        with self.assertRaises(ProtocolError): RuntimeStatus.parse(raw)
+        legacy = deepcopy(FakeTransport(with_capabilities=True).state)
+        legacy["features"].append("write-base.v1"); legacy["write_base_sha256"] = "a" * 64
+        with self.assertRaises(ProtocolError): RuntimeStatus.parse(legacy)
+        legacy["features"].remove("write-base.v1")
+        self.assertIsNone(RuntimeStatus.parse(legacy).write_base_sha256)
+
     def test_invalid_files_can_be_reported_but_valid_metadata_must_be_consistent(self):
         state = json.loads(STATUS.read_bytes())
         state["active"].update(present=True, bytes=2**32, status=4)
@@ -170,6 +191,23 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.valid); self.assertEqual(result.status, 400)
         with self.assertRaises(ValueError): await self.client.validate(b"x" * 16385)
         self.assertEqual(sum(method == "POST" for method, *_ in self.transport.calls), 2)
+
+    async def test_changed_write_base_invalidates_read_check_even_at_the_same_generation(self):
+        from home_panel_core.read_backend import PanelReadBackend, ReadConflict
+        fake = FakeTransport(with_capabilities=True)
+        fake.state.update(storage="flash-nvs", storage_ready=True, sd_ready=False,
+                          storage_generation="62", write_base_sha256="a" * 64)
+        fake.state["features"].extend(["flash-maintenance.v1", "write-base.v1"])
+        def change(method, path, result):
+            if method == "POST" and path == "validate": fake.state["write_base_sha256"] = "b" * 64
+            return result
+        fake.change = change
+        backend = PanelReadBackend(PanelConfigClient(fake, TOKEN))
+        with self.assertRaises(ReadConflict): await backend.check_document(fake.documents[Source.ACTIVE])
+        self.assertTrue(backend.requires_status_refresh)
+        self.assertEqual(sum(method == "POST" for method, *_ in fake.calls), 1)
+        self.assertEqual((await backend.inspect()).status.write_base_sha256, "b" * 64)
+        self.assertFalse(backend.requires_status_refresh)
 
     async def test_flash_snapshot_and_exact_export_work_without_sd(self):
         fake = FakeTransport(with_capabilities=True)

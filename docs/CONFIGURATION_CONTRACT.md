@@ -200,6 +200,12 @@ capabilities and activation verification are implemented and tested. The local
 maintenance page remains an authenticated recovery route, not a second rich
 editor or a bypass of ownership/security checks.
 
+Development 0.1.2 prepares [write-base.v1](WRITE_BASE.md), an opaque flash
+snapshot precondition checked again inside the NVS writer lease. This closes
+the stale-draft/base comparison layer without adding an owner, credential or
+HA writer. The current authority remains unmanaged/not enforced; do not mark
+the ownership or managed deployment exit gate complete from this condition.
+
 ## Read/Check Client Contract
 
 `home_panel_core` has no HA imports or runtime renderer

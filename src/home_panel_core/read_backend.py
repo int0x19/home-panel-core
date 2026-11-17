@@ -109,8 +109,10 @@ class PanelReadBackend:
     def _same_boot(before: RuntimeSnapshot, after: RuntimeSnapshot):
         if before.capabilities != after.capabilities:
             raise ReadConflict("Panel boot or capabilities changed during read/check")
-        if (before.status.storage, before.status.storage_ready, before.status.storage_generation) != (
-                after.status.storage, after.status.storage_ready, after.status.storage_generation):
+        if (before.status.storage, before.status.storage_ready, before.status.storage_generation,
+                before.status.write_base_sha256) != (
+                after.status.storage, after.status.storage_ready, after.status.storage_generation,
+                after.status.write_base_sha256):
             raise ReadConflict("Configuration storage changed during read/check")
 
     @staticmethod
