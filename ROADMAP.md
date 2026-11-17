@@ -79,5 +79,7 @@ action-only configuration profile. The subsequent explicit readings capability/
 storage boundary now passes 50 installed-core, 213 HA and 70 scoped native
 consumer checks, with one optional skip and no ESP32 deployment. The subsequent
 HA Send extension shares the existing client/operation gate and tests the exact
-checked bytes, stale tabs, lost replies and unchanged UI. Next implement Apply; the
+checked bytes, stale tabs, lost replies and unchanged UI. The Apply client slice
+now passes 79 installed-core, 232 HA and 114 scoped native checks (two optional
+sanitizer skips), without MCU code/OTA. Next expose Apply/inspection in HA; the
 write-base guard is prepared and multi-controller ownership is deferred.

@@ -74,5 +74,14 @@ mutation replay. Firmware tests run this installed package against production
 C++ HTTP/jobs/NVS/boot lifecycle on Linux; only SDK/ESPHome UI plumbing is fake.
 These are not ESP32 compilation, OTA, physical display acceptance or publication.
 
+Consumer checkpoint, 2026-11-17: all 79 installed-wheel/loopback tests and 232
+HA component/browser/bundle tests pass from functional source
+`ac24832776852116018ad47cdf120685c9d37567`. All 23 wheel package files match
+that source. The firmware's scoped flash/NVS/client/legacy-read/decoder suite
+runs 116 cases: 114 pass and two optional sanitizer runs skip. Native frame/
+health signals are supplied by the host fixture, not a measured physical UI.
+The subsequent source-test-only loopback timeout adjustment changes no package
+file, wheel, consumer pin or version. HA still enables only Upload, not Apply.
+
 Next connect request/inspection to HA's existing administrator/per-panel gate,
 keeping Send, Apply and observed activation distinct; then add Discard/recovery.
