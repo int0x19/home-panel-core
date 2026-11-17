@@ -57,5 +57,6 @@ ESP32 acceptance, a firmware change or a published 0.1.2 release.
 
 The subsequent HA step exposes Send through its existing administrator backend/
 editor and tests stale tabs/unknown results without Apply. Local checkpoint Save
-remains distinct. Next add explicit Apply and running-model verification; this
-documentation update does not change the functional wheel/pin or firmware.
+remains distinct. The subsequent [Apply slice](CANDIDATE_APPLY.md) adds separate
+request/inspection methods in core; HA exposure and physical acceptance remain
+separate. Send never calls Apply as a side effect.

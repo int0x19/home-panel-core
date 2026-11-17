@@ -232,8 +232,10 @@ actuator methods are exposed.
 These default read/check operations remain unchanged. Development 0.1.2 also
 adds explicit `send_candidate(bytes, expected=imported_snapshot)` for flash
 storage only; see [candidate Send](CANDIDATE_SEND.md). Its transport requires
-`allow_candidate_upload=True` and adds only Upload. There are still no
-Apply/restore/discard/scan/actuator methods. The subsequent HA backend opts its
+`allow_candidate_upload=True` and adds only Upload. The subsequent
+[Apply slice](CANDIDATE_APPLY.md) adds `apply_candidate(expected=...)` and
+`inspect_activation(expected=...)`, with a separate `allow_candidate_apply=True`
+transport option. Restore/discard/scan/actuator methods remain excluded. HA opts its
 paired client into Upload only, behind its administrator/import/check gate.
 The transport allowlist enforces the boundary independently of the client.
 

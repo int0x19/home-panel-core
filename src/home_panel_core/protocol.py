@@ -200,6 +200,19 @@ class FlashWriteState:
 
 
 @dataclass(frozen=True)
+class FlashBootState:
+    apply_enabled: bool
+    phase: int
+
+    @classmethod
+    def parse(cls, value):
+        if not all(key in value for key in ("apply_enabled", "boot_phase")):
+            return None
+        return cls(boolean(value["apply_enabled"], "flash trials"),
+                   integer(value["boot_phase"], "flash boot phase", maximum=UINT32_MAX))
+
+
+@dataclass(frozen=True)
 class RuntimeStatus:
     session_id: str = field(repr=False)
     revision: int
@@ -219,6 +232,7 @@ class RuntimeStatus:
     storage_generation: str | None = None
     write_base_sha256: str | None = None
     flash_write: FlashWriteState | None = None
+    flash_boot: FlashBootState | None = None
 
     @property
     def storage_ready(self) -> bool:
@@ -289,7 +303,8 @@ class RuntimeStatus:
                    integer(value.get("loaded_revision"), "loaded document revision", maximum=UINT32_MAX), lifetime,
                    tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id,
                    storage, storage_ready, generation, write_base,
-                   FlashWriteState.parse(value) if storage == "flash-nvs" else None)
+                   FlashWriteState.parse(value) if storage == "flash-nvs" else None,
+                   FlashBootState.parse(value) if storage == "flash-nvs" else None)
 
 
 @dataclass(frozen=True)
@@ -427,4 +442,26 @@ class CandidateSendResult:
     sha256: str
     bytes: int
     changed: bool
+    snapshot: RuntimeSnapshot
+
+
+@dataclass(frozen=True)
+class CandidateApplyReceipt:
+    revision: int
+    sha256: str
+    snapshot: RuntimeSnapshot
+
+
+class ActivationState(StrEnum):
+    UNCHANGED = "unchanged"
+    RESTARTING = "restarting"
+    CONFIRMING = "confirming"
+    CONFIRMED = "confirmed"
+    ROLLED_BACK = "rolled_back"
+    UNVERIFIED = "unverified"
+
+
+@dataclass(frozen=True)
+class ActivationResult:
+    state: ActivationState
     snapshot: RuntimeSnapshot

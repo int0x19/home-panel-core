@@ -8,8 +8,9 @@ configuration client/protocol and the browser's immutable room/action/sensor dra
 Python >=3.13. No Home Assistant, ESPHome, YAML, templates or hardware dependency
 is needed. The optional `http` extra supplies aiohttp for standalone HTTP use;
 HA supplies its own shared session. The transport is read/check-only by default.
-An explicit opt-in supports guarded candidate Send, never Apply or household
-services. See [candidate Send](docs/CANDIDATE_SEND.md).
+Separate explicit opt-ins support guarded candidate Send and Apply, never
+household services. Send does not apply; an Apply receipt is not proof of
+activation. See [Send](docs/CANDIDATE_SEND.md) and [Apply](docs/CANDIDATE_APPLY.md).
 
 ## Build And Test
 

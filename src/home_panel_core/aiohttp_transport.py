@@ -10,7 +10,7 @@ from .protocol import (API, MAX_DOCUMENT_BYTES, MAX_METADATA_BYTES, UINT32_MAX,
 
 class AiohttpTransport:
     def __init__(self, session: aiohttp.ClientSession, origin: str, *, request_timeout=7.0,
-                 allow_candidate_upload=False):
+                 allow_candidate_upload=False, allow_candidate_apply=False):
         try:
             parts = urlsplit(origin)
             port = parts.port
@@ -25,10 +25,13 @@ class AiohttpTransport:
             raise ValueError("Invalid HTTP request timeout")
         if type(allow_candidate_upload) is not bool:
             raise ValueError("Invalid candidate-upload opt-in")
+        if type(allow_candidate_apply) is not bool:
+            raise ValueError("Invalid candidate-apply opt-in")
         self._session = session
         self._origin = origin.rstrip("/")
         self._timeout = aiohttp.ClientTimeout(total=request_timeout)
         self._allow_candidate_upload = allow_candidate_upload
+        self._allow_candidate_apply = allow_candidate_apply
 
     async def request(self, method, path, *, headers, body, max_bytes):
         suffix = path.removeprefix(API)
@@ -37,7 +40,8 @@ class AiohttpTransport:
                 suffix[len(prefix):].isdecimal() and len(suffix[len(prefix):]) <= 10 and
                 0 < int(suffix[len(prefix):]) < UINT32_MAX for prefix in ("jobs/", "downloads/")))) or (
             method == "POST" and (suffix in {"export", "validate"} or
-                                  (suffix == "upload" and self._allow_candidate_upload)))
+                                  (suffix == "upload" and self._allow_candidate_upload) or
+                                  (suffix == "apply" and self._allow_candidate_apply)))
         if (not path.startswith(API) or not allowed or
                 type(max_bytes) is not int or not 0 < max_bytes <= max(MAX_DOCUMENT_BYTES, MAX_METADATA_BYTES) or
                 (body is not None and (not isinstance(body, bytes) or len(body) > MAX_DOCUMENT_BYTES))):

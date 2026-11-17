@@ -1,4 +1,4 @@
-"""Bounded configuration client; candidate Send is explicit and never applies it."""
+"""Bounded configuration client; Send, Apply and activation inspection are explicit."""
 
 import asyncio
 import hashlib
@@ -115,7 +115,7 @@ class PanelConfigClient:
         except PanelHTTPError as error:
             if not candidate or error.status in {400, 401, 403, 409, 413, 429}:
                 raise
-            raise OutcomeUnknown("Candidate submission was not verified; refresh status, do not retry") from None
+            raise OutcomeUnknown("Mutation submission was not verified; refresh status, do not retry") from None
         accepted = json_object(response.body)
         job_id = integer(accepted.get("id"), "job id", 1)
         if (not self._identity_matches(accepted, state) or accepted.get("session_id") != state.session_id or
@@ -131,7 +131,7 @@ class PanelConfigClient:
             except PanelHTTPError:
                 if not candidate:
                     raise
-                raise OutcomeUnknown("Candidate receipt unavailable; refresh status, do not retry") from None
+                raise OutcomeUnknown("Mutation receipt unavailable; refresh status, do not retry") from None
             revision = integer(result.get("revision"), "operation revision")
             if (not self._identity_matches(result, state) or integer(result.get("id"), "job id", 1) != job_id or
                     result.get("session_id") != state.session_id or
@@ -143,7 +143,7 @@ class PanelConfigClient:
                 if status == 202:
                     raise ProtocolError("Completed job is still pending")
                 if candidate and status == 200 and revision != state.revision + 1:
-                    raise ProtocolError("Candidate mutation revision did not advance")
+                    raise ProtocolError("Mutation revision did not advance")
                 return job_id, result
             if status != 202:
                 raise ProtocolError("Pending job has a final status")
@@ -200,6 +200,16 @@ class PanelConfigClient:
         """Stage and read back exact bytes against the caller's imported baseline. Never Apply."""
         from .candidate import send_candidate
         return await send_candidate(self, data, expected)
+
+    async def apply_candidate(self, *, expected: RuntimeSnapshot):
+        """Request one guarded Apply; its receipt is not proof of activation."""
+        from .activation import apply_candidate
+        return await apply_candidate(self, expected)
+
+    async def inspect_activation(self, *, expected: RuntimeSnapshot):
+        """Inspect one activation against the retained pre-Apply snapshot. Never retry Apply."""
+        from .activation import inspect_activation
+        return await inspect_activation(self, expected)
 
     async def validate(self, data: bytes) -> ValidationResult:
         if not isinstance(data, bytes) or not data:

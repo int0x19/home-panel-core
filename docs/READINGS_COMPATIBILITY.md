@@ -24,7 +24,8 @@ is still incomplete. Negotiating sensors never grants permission to persist or
 activate a draft. The subsequent [candidate Send](CANDIDATE_SEND.md) operation
 requires explicit transport opt-in and healthy flash metadata, not managed flags;
 The subsequent HA source exposes Send through an administrator/import/check gate;
-neither HA nor core has an Apply method yet.
+The next core slice adds [guarded Apply and inspection](CANDIDATE_APPLY.md);
+HA still has no Apply command/control or transport opt-in.
 
 Core source acceptance: 50 tests including Node draft cases and loopback HTTP.
 Firmware C++/HTTP/NVS and HA consumer acceptance are separate gates. The working

@@ -13,6 +13,7 @@ def asset_path(name: str) -> Path:
 
 from .client import PanelConfigClient
 from .protocol import (
+    ActivationResult, ActivationState, CandidateApplyReceipt, FlashBootState,
     CandidateConflict, CandidateSendResult, DecoderInventory, ExportedDocument, FileInfo, FlashWriteState, HTTPResponse, IdentityMismatch, OutcomeUnknown, PanelError,
     PanelHTTPError, ProtocolError, RuntimeCapabilities, RuntimeSnapshot, RuntimeStatus, Source, TransportError,
     ValidationResult,
@@ -24,4 +25,5 @@ __all__ = [
     "RuntimeStatus", "Source", "TransportError", "ValidationResult",
     "DecoderInventory", "IdentityMismatch", "RuntimeCapabilities", "RuntimeSnapshot",
     "CandidateConflict", "CandidateSendResult", "FlashWriteState",
+    "ActivationResult", "ActivationState", "CandidateApplyReceipt", "FlashBootState",
 ]

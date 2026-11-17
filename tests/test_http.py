@@ -11,6 +11,7 @@ from home_panel_core import IdentityMismatch, PanelConfigClient, PanelHTTPError,
 from home_panel_core.protocol import API
 from home_panel_core.testing import DEVICE_ID, FakeTransport, TOKEN
 from test_candidate import UploadTransport
+from test_activation import ApplyTransport
 
 try:
     import aiohttp
@@ -134,6 +135,30 @@ class HTTPTests(unittest.IsolatedAsyncioTestCase):
         from home_panel_core import OutcomeUnknown
         with self.assertRaises(OutcomeUnknown): await client.send_candidate(data, expected=baseline)
         self.assertEqual(sum(path == API + "upload" for _, path in self.seen), 1)
+
+    async def test_apply_has_its_own_opt_in_and_inspection_never_retries_it(self):
+        from home_panel_core import ActivationState, OutcomeUnknown
+        self.fake = ApplyTransport()
+        client = PanelConfigClient(self.transport, TOKEN, expected_device_id=DEVICE_ID)
+        baseline = await client.snapshot()
+        with self.assertRaises(ValueError): await client.apply_candidate(expected=baseline)
+        self.assertFalse(any(path == API + "apply" for _, path in self.seen))
+        transport = AiohttpTransport(self.session, "http://" + self.origin, allow_candidate_apply=True)
+        with self.assertRaises(ValueError):
+            await transport.request("POST", API + "upload", headers={}, body=b"{}", max_bytes=1024)
+        client = PanelConfigClient(transport, TOKEN, expected_device_id=DEVICE_ID)
+        def redirect(method, suffix, result):
+            if suffix == "apply": return type(result)(302, (("Location", "http://127.0.0.1:1/stolen"),), b"")
+            return result
+        self.fake.change = redirect
+        with self.assertRaises(OutcomeUnknown): await client.apply_candidate(expected=baseline)
+        self.fake.change = lambda method, suffix, result: result
+        self.fake.reboot(); self.fake.confirm()
+        self.assertEqual((await client.inspect_activation(expected=baseline)).state, ActivationState.CONFIRMED)
+        self.assertEqual(sum(path == API + "apply" for _, path in self.seen), 1)
+        for suffix in ("restore", "discard", "scan", "authority/claim"):
+            with self.assertRaises(ValueError):
+                await transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
 
 
 if __name__ == "__main__": unittest.main()

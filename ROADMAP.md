@@ -5,16 +5,24 @@
 Reuse HA administrator authorization, the existing panel access credential and
 ESPHome state/action facilities. Core now supports bounded explicit Send-candidate
 through the current HTTP job API. The subsequent HA source exposes it through
-its administrator backend/editor; next add explicit Apply/restart with
-running-model verification. Keep imported-base/session/generation/digest conflicts, validation
+its administrator backend/editor. Core now also supports separate guarded
+Apply/activation inspection; next expose those operations in HA. Keep imported-base/session/generation/digest conflicts, validation
 and no automatic replay. Persistent multi-controller ownership/scoped-key
 handover is deferred, not a prerequisite for this single-HA workflow. Its
-private native backend remains inactive; no public handover, Apply method
+private native backend remains inactive; no public handover, HA Apply control
 or managed capability readiness is enabled. See firmware
 `docs/IMPLEMENTATION_SCOPE.md` and the contract's scope correction below.
 
 ## Implementation History
 
+- [x] Add explicit flash Apply with independent transport opt-in and bounded
+  read-only activation inspection, still development 0.1.2. Use original
+  paired candidate/base, exact export, mutation receipt rules and existing
+  boot phases; distinguish unchanged/restarting/confirming/confirmed/rolled-back/
+  unverified outcomes. Confirm only after the exact trial's local first-frame/
+  health confirmation and verified active SHA/readback. No automatic Apply
+  replay, new MCU fields/endpoints, HA Apply control or device deployment.
+  See [Apply contract](docs/CANDIDATE_APPLY.md).
 - [x] Add guarded flash candidate Send in development 0.1.2, using explicit
   transport opt-in, the original imported snapshot and existing Upload API.
   Verify exact candidate bytes and unchanged active/backup/loaded state; refuse
