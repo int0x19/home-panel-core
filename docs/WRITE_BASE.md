@@ -41,3 +41,11 @@ configuration is changed by these source changes.
 Next implement persistent ownership/scoped authentication and explicit local
 handover/recovery. Only then add guarded HA Send/Apply and device activation
 acceptance. Write-base is concurrency protection, not ownership enforcement.
+
+Consumer checkpoint, 2026-11-17: all 52 installed-wheel tests and 214 HA tests
+pass from functional source `d414a7f2e7fb283d1c66c84bc1521da7cb345ad9`. The
+firmware passes 80 scoped flash HTTP/NVS/client cases (two optional skips),
+28 compatibility/decode/codegen checks, a separate flash ASan/UBSan run and
+two loopback browser workflows. All 21 wheel files match the locked source.
+No full firmware sweep, physical OTA or release is implied. Documentation-only
+updates do not change the tested functional pin.
