@@ -20,6 +20,11 @@
 - [ ] Extend versioned schema/model/fixtures only as device runtime support and
   consumer compatibility tests are accepted. Do not infer device assets or RAM
   acceptance from host limits or package versions.
+- [x] Recognize the explicit unmanaged `esp32-readings-preview` capability target
+  in development 0.1.2. Check its widget/features and combined binding/subscription
+  ceiling, preserve the legacy action profile and keep all deployment/dispatch
+  permissions false. Core source passes 50 tests; downstream and physical
+  acceptance remain separate. See [profile contract](docs/READINGS_COMPATIBILITY.md).
 - [ ] Keep transport, canonical JSON and edit logic interoperable across
   explicitly supported consumer releases; never add generic service dispatch or
   hardware/network credentials to runtime JSON.

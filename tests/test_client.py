@@ -125,6 +125,22 @@ class ProtocolTests(unittest.TestCase):
             raw = deepcopy(source); raw[section][key] = value
             with self.subTest(section=section, key=key), self.assertRaises(ProtocolError): RuntimeCapabilities.parse(raw)
 
+    def test_readings_profile_is_explicit_bounded_and_still_unmanaged(self):
+        source = capability_document(FakeTransport(with_capabilities=True).state, readings=True)
+        parsed = RuntimeCapabilities.parse(source)
+        self.assertEqual(parsed.widget_types, ("action", "sensor", "status"))
+        self.assertEqual(parsed.limit("subscriptions"), parsed.limit("entity_bindings"))
+        self.assertIn("sensor-groups.v1", parsed.features)
+        self.assertFalse(parsed.deployment_ready or parsed.management_ready)
+        self.assertEqual(parsed.authority, "unmanaged")
+        for key, value in (("entity_bindings", 0), ("entity_bindings", 13), ("subscriptions", 0),
+                           ("views", 1), ("attention_sources", 1)):
+            raw = deepcopy(source); raw["limits"][key] = value
+            with self.subTest(key=key), self.assertRaises(ProtocolError): RuntimeCapabilities.parse(raw)
+        for key, value in (("widget_types", ["action", "sensor"]), ("features", sorted(PILOT_FEATURES))):
+            raw = deepcopy(source); raw[key] = value
+            with self.subTest(key=key), self.assertRaises(ProtocolError): RuntimeCapabilities.parse(raw)
+
 
 class ClientTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):

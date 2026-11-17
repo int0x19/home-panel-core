@@ -1,0 +1,32 @@
+# Runtime Readings Capability Profile
+
+Development 0.1.2 accepts the explicit `esp32-readings-preview` target alongside
+the unchanged legacy `esp32-action-preview`. Both use `capabilities.v1`, JSON
+schema v1 and the same bounded read/check endpoints. Unknown targets still fail
+closed. This is not a generic managed/production profile.
+
+The readings target reports action, numeric sensor and binary-status decoding,
+plus named/unnamed sensor groups. Its configured unique-source ceiling covers
+actions and readings together. Repeated placements share a binding. The
+`subscriptions` ceiling equals `entity_bindings`; it counts only runtime-owned
+callbacks, not the device's aggregate generated-room/API subscriptions. Limits
+are configured, not measured resource acceptance. Inconsistent inventories,
+zero/over-budget bindings and nonzero views/attention are rejected.
+
+Only the firmware flash owner uses this general profile. Its validation,
+candidate/export and restart loading must all use the same decoder options.
+The legacy SD publisher stays action-only; Linux support must not silently
+change that contract. Flash remains primary and SD is not required.
+
+Authority stays unmanaged/not enforced. `management_ready`, `deployment_ready`,
+production rooms, asset upload and action dispatch remain false. Asset coverage
+is still incomplete. The shared client still exposes no upload/Apply methods;
+negotiating sensors never grants permission to persist or activate a draft.
+
+Core source acceptance: 50 tests including Node draft cases and loopback HTTP.
+Firmware C++/HTTP/NVS and HA consumer acceptance are separate gates. The working
+physical panel and published Marketplace 0.1.1 are unchanged by this development
+slice. Test/build the pinned 0.1.2 wheel; do not infer support from version alone.
+
+Next: complete consumer checks, then define/enforce guarded ownership and
+base-revision/digest/generation checks before adding explicit HA Send/Apply.

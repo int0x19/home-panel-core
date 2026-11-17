@@ -315,7 +315,8 @@ class RuntimeCapabilities:
         if (value.get("format") != "home-panel-capabilities" or
                 integer(value.get("metadata_version"), "metadata version", 1) != 1 or
                 integer(value.get("protocol_version"), "protocol version", 1) != 1 or
-                value.get("target") != "esp32-action-preview" or value.get("config_format") != "home-panel-runtime" or
+                value.get("target") not in ("esp32-action-preview", "esp32-readings-preview") or
+                value.get("config_format") != "home-panel-runtime" or
                 value.get("identity_source") != "esp32-efuse-mac48"):
             raise ProtocolError("Unsupported capability profile")
         schemas = value.get("schema_versions")
@@ -341,9 +342,18 @@ class RuntimeCapabilities:
         parsed_limits = tuple((key, integer(limits.get(key), "capability limit")) for key in fields)
         if not 0 < limits["document_bytes"] <= MAX_DOCUMENT_BYTES:
             raise ProtocolError("Unsupported document ceiling")
+        features = frozenset(names(value.get("features"), "configuration features", 64))
+        widgets = names(value.get("widget_types"), "widget types", 64)
+        if value["target"] == "esp32-readings-preview":
+            required = {"rooms.v1", "style.v1", "widget.action", "action-pages.v1", "script-controls.v1",
+                        "widget.sensor", "widget.status", "sensor-groups.v1"}
+            if (not required <= features or set(widgets) != {"action", "sensor", "status"} or
+                    not 0 < limits["entity_bindings"] <= limits["widgets"] or
+                    limits["subscriptions"] != limits["entity_bindings"] or
+                    limits["views"] or limits["attention_sources"]):
+                raise ProtocolError("Inconsistent readings capability profile")
         return cls(device_identifier(value.get("device_id")), nonce(value.get("session_id")), schemas,
-                   frozenset(names(value.get("features"), "configuration features", 64)),
-                   names(value.get("widget_types"), "widget types", 64), names(value.get("room_kinds"), "room kinds", 16),
+                   features, widgets, names(value.get("room_kinds"), "room kinds", 16),
                    integer(display.get("width"), "display width", 1, 4096),
                    integer(display.get("height"), "display height", 1, 4096), parsed_limits,
                    boolean(value.get("limits_measured_on_device"), "measured limits flag"),

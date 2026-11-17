@@ -17,9 +17,7 @@ from home_panel_core.testing import DOCUMENT, FakeTransport, capability_document
 class SensorDraftTests(unittest.TestCase):
     def setUp(self):
         self.doc = deepcopy(DOCUMENT)
-        self.caps = capability_document(FakeTransport(with_capabilities=True).state)
-        self.caps["features"].extend(["widget.sensor", "sensor-groups.v1"])
-        self.caps["widget_types"].append("sensor")
+        self.caps = capability_document(FakeTransport(with_capabilities=True).state, readings=True)
 
     def run_edits(self, *operations, document=None, caps=None):
         source = self.doc if document is None else document

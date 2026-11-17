@@ -18,8 +18,8 @@ STATUS = Path(__file__).parent / "testing_data/runtime_management_status_v1.json
 DOCUMENT = json.loads((Path(__file__).parent / "testing_data/actions_v1.json").read_bytes())
 PILOT_FEATURES = frozenset({"rooms.v1", "style.v1", "widget.action", "action-pages.v1", "script-controls.v1"})
 
-def capability_document(state):
-    return {"format": "home-panel-capabilities", "metadata_version": 1, "protocol_version": 1,
+def capability_document(state, *, readings=False):
+    value = {"format": "home-panel-capabilities", "metadata_version": 1, "protocol_version": 1,
         "session_id": state["session_id"], "device_id": state["device_id"],
         "identity_source": "esp32-efuse-mac48", "target": "esp32-action-preview",
         "config_format": "home-panel-runtime", "schema_versions": [1], "features": sorted(PILOT_FEATURES),
@@ -33,6 +33,12 @@ def capability_document(state):
         "runtime": {"preview_compiled": False, "production_rooms": False, "dispatch_enabled": False},
         "assets": {"source": "firmware", "upload": False, "inventory_complete": False},
         "authority": {"mode": "unmanaged", "enforced": False}, "deployment_ready": False, "management_ready": False}
+    if readings:
+        value["target"] = "esp32-readings-preview"
+        value["features"].extend(["widget.sensor", "widget.status", "sensor-groups.v1"])
+        value["widget_types"].extend(["sensor", "status"])
+        value["limits"]["subscriptions"] = value["limits"]["entity_bindings"]
+    return value
 
 
 def response(value, *, status=200, extra=()):

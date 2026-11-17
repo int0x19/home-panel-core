@@ -40,6 +40,10 @@ The firmware repository retains native C++/LVGL cross-language acceptance.
 Core 0.1.2 adds [shared numeric-sensor/group edits](docs/SENSOR_DRAFT.md),
 including mixed-row fit guards. It keeps schema/protocol v1, does not advertise
 new device capabilities and does not add a configuration writer.
+The same unpublished development version now recognizes the firmware's explicit
+[readings preview profile](docs/READINGS_COMPATIBILITY.md), without granting
+management, asset or dispatch permissions. Legacy SD/action negotiation stays
+supported; firmware/device acceptance is independent of this client support.
 
 Core 0.1.1 adds read/check compatibility with the deployed internal-flash
 configuration storage. Flash pairing/export no longer requires an SD card;
