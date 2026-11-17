@@ -38,9 +38,10 @@ and a read/check race without automatic replay. Consumer acceptance and the
 firmware boundary are separate gates. No package is published and no physical
 configuration is changed by these source changes.
 
-Next implement persistent ownership/scoped authentication and explicit local
-handover/recovery. Only then add guarded HA Send/Apply and device activation
-acceptance. Write-base is concurrency protection, not ownership enforcement.
+The initial ownership-first next-step plan below was superseded by the scope
+correction in [Authority And Preference Rules](CONFIGURATION_CONTRACT.md#authority-and-preference-rules).
+Next add minimal guarded single-credential Send/Apply and activation acceptance.
+Write-base is concurrency protection, not exclusive ownership enforcement.
 
 Consumer checkpoint, 2026-11-17: all 52 installed-wheel tests and 214 HA tests
 pass from functional source `d414a7f2e7fb283d1c66c84bc1521da7cb345ad9`. The
@@ -69,6 +70,7 @@ actor types are not a new JSON schema or a public client API. The firmware's
 This documentation checkpoint reruns all 52 installed-core tests and 40 HA
 release/setup/lifecycle tests, plus scoped firmware/native/codegen and separate
 authority sanitizer checks. It neither repeats the full HA/browser suite nor
-changes published HA 0.1.1/running firmware. Next define and test authenticated
-HTTP handover, scoped keys, explicit local recovery and uncertainty handling;
-only then extend shared core/HA with guarded Send/Apply.
+changes published HA 0.1.1/running firmware. The subsequent scope correction
+defers public HTTP handover/scoped keys; they are not prerequisites for the
+first HA Send/Apply path. Keep this native journal inactive and use the existing
+authenticated queue, exact-base conflicts and uncertainty handling instead.

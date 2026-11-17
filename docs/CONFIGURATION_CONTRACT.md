@@ -173,7 +173,18 @@ budget. Capability parsing never enables managed deployment.
 
 ## Authority And Preference Rules
 
-These are **target rules**, not ownership enforcement in current firmware:
+Scope correction, 2026-11-17: the first planned Send/Apply path uses the existing
+paired panel credential and HA administrator checks, not HA-managed exclusive
+ownership. Persistent owner identities, scoped-key handover/rotation and
+multi-controller recovery are deferred until a concrete use case requires them.
+They are not prerequisites of the single-HA workflow. Another trusted credential
+holder remains authorized; exact imported-base/session/generation/revision/digest
+checks must still reject concurrent/stale writes. No current client write method,
+capability flag or production acceptance is enabled by this planning correction.
+
+The following are **future managed-mode target rules**, not ownership enforcement
+in current firmware or requirements to create an owner journal for the first
+single-credential deployment:
 
 1. Local mode permits authenticated manual JSON import and the existing
    generation/default workflow. HA may read/import/check but must not silently
@@ -273,8 +284,11 @@ HA draft -> host validation -> device validate-only -> explicit Send candidate
 ```
 
 Saving an HA draft is not saving an SD candidate; saving a candidate is not
-applying it. Every mutation needs the current paired identity/owner/session,
-base operation revision and required candidate/backup digest. A 202 receipt
+applying it. Every mutation needs the current paired identity/authentication/
+session, exact imported base, storage generation, base operation revision and
+required candidate/backup digest. Enforced owner identity is an additional
+condition only for a future negotiated managed mode, not a guessed local flag.
+A 202 receipt
 only acknowledges queuing. After restart verify the loaded source/revision/
 digest and renderer readiness before reporting success. On network/HA restart
 or missing receipt, reconcile with device status instead of replaying Apply.

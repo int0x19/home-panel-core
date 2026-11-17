@@ -1,5 +1,19 @@
 # Shared Core Roadmap
 
+## Immediate Scope (2026-11-17)
+
+Reuse HA administrator authorization, the existing panel access credential and
+ESPHome state/action facilities. Next add only bounded explicit Send-candidate
+through the current HTTP job API, then explicit Apply/restart with running-model
+verification. Keep imported-base/session/generation/digest conflicts, validation
+and no automatic replay. Persistent multi-controller ownership/scoped-key
+handover is deferred, not a prerequisite for this single-HA workflow. Its
+private native backend remains inactive; no public handover/client write method
+or capability readiness is enabled by this documentation decision. See firmware
+`docs/IMPLEMENTATION_SCOPE.md` and the contract's scope correction below.
+
+## Implementation History
+
 - [x] Extract the pure model, codec, profiles, row planners and read/check client
   from esp32panel with subtree history and a standalone wheel.
 - [x] Package the common JS draft module and synthetic protocol fixtures.
@@ -37,8 +51,8 @@
   two-copy persistent epochs, Claim/Rotate/Release and a fresh leased native
   write gate are host-tested. This adds no public endpoint or core writer and
   does not enable managed readiness. Keep core/consumer 0.1.2 and the tested
-  functional source pin; next negotiate authenticated handover/scoped credentials
-  before adding HA Send/Apply. See [authority boundary](docs/WRITE_BASE.md#private-authority-backend).
+  functional source pin. Public handover/scoped credentials are now deferred by
+  the immediate scope above. See [authority boundary](docs/WRITE_BASE.md#private-authority-backend).
 
 HA registry/editor work belongs to home-panel-ha. Native renderers, physical
 capacity, storage recovery and OTA acceptance belong to the firmware repository.
@@ -48,4 +62,5 @@ browser's exported JSON. These host checks do not widen the physical device's
 action-only configuration profile. The subsequent explicit readings capability/
 storage boundary now passes 50 installed-core, 213 HA and 70 scoped native
 consumer checks, with one optional skip and no ESP32 deployment. Next implement
-ownership/base guards before HA Send/Apply in the responsible repositories.
+the minimal guarded Send/Apply path in the responsible repositories; the
+write-base guard is prepared and multi-controller ownership is deferred.
