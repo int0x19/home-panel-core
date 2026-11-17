@@ -99,8 +99,10 @@ validator. Official ESPHome onboarding inputs are not a persistent layout store.
 ## Prepared Capabilities Extension
 
 `capabilities.v1` is an additive feature of HTTP profile v1, with its own
-`metadata_version: 1`, not a new runtime configuration schema. It is host-tested
-source preparation, **not a deployed endpoint**. Old firmware remains usable
+`metadata_version: 1`, not a new runtime configuration schema. Initially
+host-tested on 2026-11-07, the legacy identity/action profile is deployed by the
+2026-11-16 checkpoint. The subsequent explicit readings profile is prepared in
+source only. Old firmware remains usable
 for explicit unpaired diagnostic status/export/check; it cannot be paired by
 this new client by guessing an identity or borrowing the Native API address.
 
@@ -109,7 +111,7 @@ acceptance/completion receipts. Clients trust this field only when the status
 advertises `capabilities.v1`. The authenticated GET route
 `/panel/runtime/api/capabilities` returns an immutable boot-scoped document:
 
-| Section/Field | Profile v1 meaning |
+| Section/Field | Legacy Action Profile v1 Meaning |
 | --- | --- |
 | `format`, `metadata_version`, `protocol_version` | `home-panel-capabilities`, `1`, `1` |
 | `device_id`, `identity_source` | `esp32-efuse-<12 lowercase hex digits>`, `esp32-efuse-mac48` |
@@ -124,6 +126,16 @@ advertises `capabilities.v1`. The authenticated GET route
 | `assets` | Firmware-supplied, no upload; complete loaded asset inventory is not yet implemented |
 | `authority` | `unmanaged`, `enforced: false`; no owner or handover protocol yet |
 | `deployment_ready`, `management_ready` | Both false; metadata must not arm controls or writes |
+
+Development core 0.1.2 additionally recognizes `esp32-readings-preview` from
+the flash owner's general decoder. Its inventory adds `widget.sensor`,
+`widget.status`, `sensor-groups.v1` and sensor/status widget types. The configured
+combined unique-source ceiling is reported as both `entity_bindings` and
+`subscriptions`; it is not the device's aggregate callback count. All authority,
+production/dispatch, readiness and incomplete-asset caveats above remain.
+Legacy SD remains action-only. See [readings compatibility](READINGS_COMPATIBILITY.md).
+HA/core 0.1.1 reject the new target, so update/accept the companion before
+deploying such firmware; the current source changes do not publish either.
 
 Identity uses the SDK's documented
 [`esp_efuse_mac_get_default`](https://docs.espressif.com/projects/esp-idf/en/v5.5.1/esp32s3/api-reference/system/misc_system_api.html#mac-address),

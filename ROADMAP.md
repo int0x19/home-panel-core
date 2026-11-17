@@ -34,5 +34,7 @@ capacity, storage recovery and OTA acceptance belong to the firmware repository.
 Both local source consumers now pin 0.1.2. HA acceptance passes 212 tests and
 the firmware's actual C++/LVGL path accepts shared sensor edits, including the
 browser's exported JSON. These host checks do not widen the physical device's
-action-only configuration profile. Next accept the runtime reading capability/
-storage boundary and ownership-aware deployment in the responsible repositories.
+action-only configuration profile. The subsequent explicit readings capability/
+storage boundary now passes 50 installed-core, 213 HA and 70 scoped native
+consumer checks, with one optional skip and no ESP32 deployment. Next implement
+ownership/base guards before HA Send/Apply in the responsible repositories.

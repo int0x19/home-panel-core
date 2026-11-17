@@ -30,3 +30,13 @@ slice. Test/build the pinned 0.1.2 wheel; do not infer support from version alon
 
 Next: complete consumer checks, then define/enforce guarded ownership and
 base-revision/digest/generation checks before adding explicit HA Send/Apply.
+
+Consumer checkpoint, 2026-11-17: the wheel from functional source
+`5513b8a7737e3ebb08181b2ce02d4266f010e0a0` passes all 50 installed-wheel tests,
+213 HA/component-browser tests and 70 scoped firmware C++/HTTP/NVS/LVGL checks
+(one optional sanitizer skip). Three ESPHome source-generation checks also
+pass without ESP32 compilation. The browser's exact edited JSON traverses fake
+NVS/API and renders in Linux without overflow/commands. Next implement the
+ownership/base guards; physical acceptance and publication remain pending.
+Core/HA 0.1.1 reject the new target: accept the updated companion before any
+future readings-profile OTA. Documentation-only commits need not move that pin.
