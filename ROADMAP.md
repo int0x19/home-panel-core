@@ -4,8 +4,9 @@
 
 Reuse HA administrator authorization, the existing panel access credential and
 ESPHome state/action facilities. Core now supports bounded explicit Send-candidate
-through the current HTTP job API; next expose it in HA, then add explicit
-Apply/restart with running-model verification. Keep imported-base/session/generation/digest conflicts, validation
+through the current HTTP job API. The subsequent HA source exposes it through
+its administrator backend/editor; next add explicit Apply/restart with
+running-model verification. Keep imported-base/session/generation/digest conflicts, validation
 and no automatic replay. Persistent multi-controller ownership/scoped-key
 handover is deferred, not a prerequisite for this single-HA workflow. Its
 private native backend remains inactive; no public handover, Apply method
@@ -68,6 +69,7 @@ the firmware's actual C++/LVGL path accepts shared sensor edits, including the
 browser's exported JSON. These host checks do not widen the physical device's
 action-only configuration profile. The subsequent explicit readings capability/
 storage boundary now passes 50 installed-core, 213 HA and 70 scoped native
-consumer checks, with one optional skip and no ESP32 deployment. Next expose
-the guarded Send path in HA, then implement Apply; the
+consumer checks, with one optional skip and no ESP32 deployment. The subsequent
+HA Send extension shares the existing client/operation gate and tests the exact
+checked bytes, stale tabs, lost replies and unchanged UI. Next implement Apply; the
 write-base guard is prepared and multi-controller ownership is deferred.

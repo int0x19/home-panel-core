@@ -41,8 +41,9 @@ The firmware repository retains native C++/LVGL cross-language acceptance.
 Core 0.1.2 adds [shared numeric-sensor/group edits](docs/SENSOR_DRAFT.md),
 including mixed-row fit guards. It keeps schema/protocol v1, does not advertise
 new device capabilities. Its subsequent candidate Send slice adds only guarded
-Upload and exact readback; the HA integration remains read-only until its own
-administrator/backend/editor acceptance.
+Upload and exact readback. The subsequent HA companion source exposes it through
+its administrator backend/editor with a one-use imported baseline and checked
+digest; Apply and physical acceptance remain separate.
 The same unpublished development version now recognizes the firmware's explicit
 [readings preview profile](docs/READINGS_COMPATIBILITY.md), without granting
 management, asset or dispatch permissions. Legacy SD/action negotiation stays

@@ -23,15 +23,16 @@ production rooms, asset upload and action dispatch remain false. Asset coverage
 is still incomplete. Negotiating sensors never grants permission to persist or
 activate a draft. The subsequent [candidate Send](CANDIDATE_SEND.md) operation
 requires explicit transport opt-in and healthy flash metadata, not managed flags;
-HA still exposes no Send/Apply and the core has no Apply method.
+The subsequent HA source exposes Send through an administrator/import/check gate;
+neither HA nor core has an Apply method yet.
 
 Core source acceptance: 50 tests including Node draft cases and loopback HTTP.
 Firmware C++/HTTP/NVS and HA consumer acceptance are separate gates. The working
 physical panel and published Marketplace 0.1.1 are unchanged by this development
 slice. Test/build the pinned 0.1.2 wheel; do not infer support from version alone.
 
-Next: expose guarded candidate Send in HA, then explicit Apply with observed
-activation. Base-revision/digest/generation checks remain mandatory; persistent
+Next: explicit Apply with observed activation. Base-revision/digest/generation
+checks remain mandatory; persistent
 multi-controller ownership is deferred by the current scope decision.
 
 Consumer checkpoint, 2026-11-17: the wheel from functional source

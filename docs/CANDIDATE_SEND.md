@@ -5,7 +5,9 @@ It uses the existing flash Upload job, not a new endpoint, owner journal or
 HA state connection. The normal `AiohttpTransport` remains read/check-only;
 construct it with `allow_candidate_upload=True` only in a deliberately enabled
 writer. The client must be paired with an explicit stable `expected_device_id`.
-The HA integration has not enabled this transport option or a Send command yet.
+The subsequent HA integration source enables Upload only for paired clients,
+through its administrator backend/editor. Unpaired discovery stays read-only.
+See the companion's `docs/HA_CANDIDATE_SEND.md` for its one-use import/check gate.
 
 ## Preconditions And Result
 
@@ -53,6 +55,7 @@ tests this installed package against its production C++ HTTP queue and NVS write
 on Linux, using only fake SDK storage. These checks do not constitute physical
 ESP32 acceptance, a firmware change or a published 0.1.2 release.
 
-Next expose Send through HA's existing administrator-only backend/editor, keep
-local checkpoint Save distinct, and test stale tabs/unknown results without
-Apply. Add Apply and running-model verification in a later focused step.
+The subsequent HA step exposes Send through its existing administrator backend/
+editor and tests stale tabs/unknown results without Apply. Local checkpoint Save
+remains distinct. Next add explicit Apply and running-model verification; this
+documentation update does not change the functional wheel/pin or firmware.
