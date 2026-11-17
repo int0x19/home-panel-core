@@ -93,7 +93,8 @@ class HTTPTests(unittest.IsolatedAsyncioTestCase):
         client = PanelConfigClient(AiohttpTransport(self.session, "http://" + self.origin, request_timeout=0.005), TOKEN)
         with self.assertRaises(TransportError) as error: await client.status()
         self.assertNotIn(TOKEN, str(error.exception))
-        self.assertEqual(len(self.seen), 1)
+        # Under CPU load the deadline can expire before the loopback handler runs.
+        self.assertLessEqual(len(self.seen), 1)
 
     async def test_rejects_credential_urls_and_non_read_check_routes(self):
         for origin in ("http://user:secret@127.0.0.1", "file:///tmp/test", "http://127.0.0.1/?key=x",
