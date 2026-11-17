@@ -27,7 +27,7 @@ Send, Apply needs an explicitly verified new candidate/base. Missing/malformed
 headers are bad requests, changed/unavailable bases are conflicts and hash/I/O
 failures are unavailable outcomes. Read fresh status; never replay a write.
 
-This core still exposes no upload/Apply methods. Read/check operations send no
+At the write-base checkpoint core exposed no upload/Apply methods. Read/check operations send no
 write-base header. They compare the typed token before/after the transaction,
 including changes at the same numeric generation, and require a fresh explicit
 status after conflict. HA can keep that validated snapshot on its backend;
@@ -40,7 +40,9 @@ configuration is changed by these source changes.
 
 The initial ownership-first next-step plan below was superseded by the scope
 correction in [Authority And Preference Rules](CONFIGURATION_CONTRACT.md#authority-and-preference-rules).
-Next add minimal guarded single-credential Send/Apply and activation acceptance.
+The subsequent [candidate Send slice](CANDIDATE_SEND.md) implements only
+single-credential guarded Upload/readback in core. Next expose that operation
+through HA, then implement explicit Apply and activation acceptance.
 Write-base is concurrency protection, not exclusive ownership enforcement.
 
 Consumer checkpoint, 2026-11-17: all 52 installed-wheel tests and 214 HA tests

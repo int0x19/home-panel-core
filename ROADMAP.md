@@ -3,17 +3,24 @@
 ## Immediate Scope (2026-11-17)
 
 Reuse HA administrator authorization, the existing panel access credential and
-ESPHome state/action facilities. Next add only bounded explicit Send-candidate
-through the current HTTP job API, then explicit Apply/restart with running-model
-verification. Keep imported-base/session/generation/digest conflicts, validation
+ESPHome state/action facilities. Core now supports bounded explicit Send-candidate
+through the current HTTP job API; next expose it in HA, then add explicit
+Apply/restart with running-model verification. Keep imported-base/session/generation/digest conflicts, validation
 and no automatic replay. Persistent multi-controller ownership/scoped-key
 handover is deferred, not a prerequisite for this single-HA workflow. Its
-private native backend remains inactive; no public handover/client write method
-or capability readiness is enabled by this documentation decision. See firmware
+private native backend remains inactive; no public handover, Apply method
+or managed capability readiness is enabled. See firmware
 `docs/IMPLEMENTATION_SCOPE.md` and the contract's scope correction below.
 
 ## Implementation History
 
+- [x] Add guarded flash candidate Send in development 0.1.2, using explicit
+  transport opt-in, the original imported snapshot and existing Upload API.
+  Verify exact candidate bytes and unchanged active/backup/loaded state; refuse
+  stale imports and different candidates, do not rewrite an identical candidate,
+  and never replay an uncertain write. No MCU source changes or Apply. See
+  [Send contract](docs/CANDIDATE_SEND.md). HA exposure and physical acceptance
+  remain separate gates.
 - [x] Extract the pure model, codec, profiles, row planners and read/check client
   from esp32panel with subtree history and a standalone wheel.
 - [x] Package the common JS draft module and synthetic protocol fixtures.
@@ -61,6 +68,6 @@ the firmware's actual C++/LVGL path accepts shared sensor edits, including the
 browser's exported JSON. These host checks do not widen the physical device's
 action-only configuration profile. The subsequent explicit readings capability/
 storage boundary now passes 50 installed-core, 213 HA and 70 scoped native
-consumer checks, with one optional skip and no ESP32 deployment. Next implement
-the minimal guarded Send/Apply path in the responsible repositories; the
+consumer checks, with one optional skip and no ESP32 deployment. Next expose
+the guarded Send path in HA, then implement Apply; the
 write-base guard is prepared and multi-controller ownership is deferred.

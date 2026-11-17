@@ -9,7 +9,8 @@ from .protocol import (API, MAX_DOCUMENT_BYTES, MAX_METADATA_BYTES, UINT32_MAX,
 
 
 class AiohttpTransport:
-    def __init__(self, session: aiohttp.ClientSession, origin: str, *, request_timeout=7.0):
+    def __init__(self, session: aiohttp.ClientSession, origin: str, *, request_timeout=7.0,
+                 allow_candidate_upload=False):
         try:
             parts = urlsplit(origin)
             port = parts.port
@@ -22,9 +23,12 @@ class AiohttpTransport:
             raise ValueError("Expected HTTP(S) origin without credentials, query or path") from None
         if not 0 < request_timeout <= 60:
             raise ValueError("Invalid HTTP request timeout")
+        if type(allow_candidate_upload) is not bool:
+            raise ValueError("Invalid candidate-upload opt-in")
         self._session = session
         self._origin = origin.rstrip("/")
         self._timeout = aiohttp.ClientTimeout(total=request_timeout)
+        self._allow_candidate_upload = allow_candidate_upload
 
     async def request(self, method, path, *, headers, body, max_bytes):
         suffix = path.removeprefix(API)
@@ -32,11 +36,12 @@ class AiohttpTransport:
             any(suffix.startswith(prefix) and suffix[len(prefix):].isascii() and
                 suffix[len(prefix):].isdecimal() and len(suffix[len(prefix):]) <= 10 and
                 0 < int(suffix[len(prefix):]) < UINT32_MAX for prefix in ("jobs/", "downloads/")))) or (
-            method == "POST" and suffix in {"export", "validate"})
+            method == "POST" and (suffix in {"export", "validate"} or
+                                  (suffix == "upload" and self._allow_candidate_upload)))
         if (not path.startswith(API) or not allowed or
                 type(max_bytes) is not int or not 0 < max_bytes <= max(MAX_DOCUMENT_BYTES, MAX_METADATA_BYTES) or
                 (body is not None and (not isinstance(body, bytes) or len(body) > MAX_DOCUMENT_BYTES))):
-            raise ValueError("Unsupported read/check request")
+            raise ValueError("Unsupported panel request")
         try:
             async with self._session.request(method, self._origin + path, data=body, headers=headers,
                     timeout=self._timeout, allow_redirects=False, auto_decompress=False) as response:

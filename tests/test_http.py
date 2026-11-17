@@ -10,6 +10,7 @@ import unittest
 from home_panel_core import IdentityMismatch, PanelConfigClient, PanelHTTPError, ProtocolError, TransportError
 from home_panel_core.protocol import API
 from home_panel_core.testing import DEVICE_ID, FakeTransport, TOKEN
+from test_candidate import UploadTransport
 
 try:
     import aiohttp
@@ -101,6 +102,38 @@ class HTTPTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 await self.transport.request("POST", path, headers={}, body=b"", max_bytes=1024)
         self.assertEqual(self.seen, [])
+
+    async def test_candidate_upload_requires_explicit_transport_opt_in(self):
+        self.fake = UploadTransport()
+        client = PanelConfigClient(self.transport, TOKEN, expected_device_id=DEVICE_ID)
+        baseline = await client.snapshot()
+        data = self.fake.documents["active"].replace(b'"revision":31', b'"revision":40')
+        with self.assertRaises(ValueError): await client.send_candidate(data, expected=baseline)
+        self.assertFalse(any(method == "POST" for method, _ in self.seen))
+        transport = AiohttpTransport(self.session, "http://" + self.origin, allow_candidate_upload=True)
+        client = PanelConfigClient(transport, TOKEN, expected_device_id=DEVICE_ID)
+        result = await client.send_candidate(data, expected=baseline)
+        self.assertTrue(result.changed); self.assertEqual(result.revision, 40)
+        self.assertEqual(self.fake.documents["candidate"], data)
+        self.assertEqual(sum(path == API + "upload" for _, path in self.seen), 1)
+        for suffix in ("apply", "restore", "discard", "scan", "authority/claim"):
+            with self.subTest(suffix=suffix), self.assertRaises(ValueError):
+                await transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
+
+    async def test_upload_opt_in_does_not_follow_redirects_or_retry(self):
+        self.fake = UploadTransport()
+        transport = AiohttpTransport(self.session, "http://" + self.origin, allow_candidate_upload=True)
+        client = PanelConfigClient(transport, TOKEN, expected_device_id=DEVICE_ID)
+        baseline = await client.snapshot()
+        data = self.fake.documents["active"].replace(b'"revision":31', b'"revision":40')
+        original = self.fake.change
+        def redirect(method, suffix, result):
+            if suffix == "upload": return type(result)(302, (("Location", "http://127.0.0.1:1/stolen"),), b"")
+            return original(method, suffix, result)
+        self.fake.change = redirect
+        from home_panel_core import OutcomeUnknown
+        with self.assertRaises(OutcomeUnknown): await client.send_candidate(data, expected=baseline)
+        self.assertEqual(sum(path == API + "upload" for _, path in self.seen), 1)
 
 
 if __name__ == "__main__": unittest.main()

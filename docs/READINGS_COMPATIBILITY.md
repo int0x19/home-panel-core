@@ -20,16 +20,19 @@ change that contract. Flash remains primary and SD is not required.
 
 Authority stays unmanaged/not enforced. `management_ready`, `deployment_ready`,
 production rooms, asset upload and action dispatch remain false. Asset coverage
-is still incomplete. The shared client still exposes no upload/Apply methods;
-negotiating sensors never grants permission to persist or activate a draft.
+is still incomplete. Negotiating sensors never grants permission to persist or
+activate a draft. The subsequent [candidate Send](CANDIDATE_SEND.md) operation
+requires explicit transport opt-in and healthy flash metadata, not managed flags;
+HA still exposes no Send/Apply and the core has no Apply method.
 
 Core source acceptance: 50 tests including Node draft cases and loopback HTTP.
 Firmware C++/HTTP/NVS and HA consumer acceptance are separate gates. The working
 physical panel and published Marketplace 0.1.1 are unchanged by this development
 slice. Test/build the pinned 0.1.2 wheel; do not infer support from version alone.
 
-Next: complete consumer checks, then define/enforce guarded ownership and
-base-revision/digest/generation checks before adding explicit HA Send/Apply.
+Next: expose guarded candidate Send in HA, then explicit Apply with observed
+activation. Base-revision/digest/generation checks remain mandatory; persistent
+multi-controller ownership is deferred by the current scope decision.
 
 Consumer checkpoint, 2026-11-17: the wheel from functional source
 `5513b8a7737e3ebb08181b2ce02d4266f010e0a0` passes all 50 installed-wheel tests,

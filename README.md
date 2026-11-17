@@ -3,12 +3,13 @@
 Shared Python package for Home Panel firmware tools and the Home Assistant
 companion. This repository is the canonical source for models/profiles,
 resolved-style validation, no-scroll row planning, canonical JSON, the bounded
-read/check client/protocol and the browser's immutable room/action/sensor draft logic.
+configuration client/protocol and the browser's immutable room/action/sensor draft logic.
 
 Python >=3.13. No Home Assistant, ESPHome, YAML, templates or hardware dependency
 is needed. The optional `http` extra supplies aiohttp for standalone HTTP use;
-HA supplies its own shared session. Nothing in this package uploads/applies a
-configuration or calls household services.
+HA supplies its own shared session. The transport is read/check-only by default.
+An explicit opt-in supports guarded candidate Send, never Apply or household
+services. See [candidate Send](docs/CANDIDATE_SEND.md).
 
 ## Build And Test
 
@@ -39,7 +40,9 @@ The firmware repository retains native C++/LVGL cross-language acceptance.
 
 Core 0.1.2 adds [shared numeric-sensor/group edits](docs/SENSOR_DRAFT.md),
 including mixed-row fit guards. It keeps schema/protocol v1, does not advertise
-new device capabilities and does not add a configuration writer.
+new device capabilities. Its subsequent candidate Send slice adds only guarded
+Upload and exact readback; the HA integration remains read-only until its own
+administrator/backend/editor acceptance.
 The same unpublished development version now recognizes the firmware's explicit
 [readings preview profile](docs/READINGS_COMPATIBILITY.md), without granting
 management, asset or dispatch permissions. Legacy SD/action negotiation stays

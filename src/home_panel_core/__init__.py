@@ -1,4 +1,4 @@
-"""Shared logical model and read/check client, independent of HA and firmware."""
+"""Shared logical model and bounded configuration client, independent of HA/firmware."""
 
 from pathlib import Path
 
@@ -13,7 +13,7 @@ def asset_path(name: str) -> Path:
 
 from .client import PanelConfigClient
 from .protocol import (
-    DecoderInventory, ExportedDocument, FileInfo, HTTPResponse, IdentityMismatch, OutcomeUnknown, PanelError,
+    CandidateConflict, CandidateSendResult, DecoderInventory, ExportedDocument, FileInfo, FlashWriteState, HTTPResponse, IdentityMismatch, OutcomeUnknown, PanelError,
     PanelHTTPError, ProtocolError, RuntimeCapabilities, RuntimeSnapshot, RuntimeStatus, Source, TransportError,
     ValidationResult,
 )
@@ -23,4 +23,5 @@ __all__ = [
     "OutcomeUnknown", "PanelError", "PanelHTTPError", "ProtocolError",
     "RuntimeStatus", "Source", "TransportError", "ValidationResult",
     "DecoderInventory", "IdentityMismatch", "RuntimeCapabilities", "RuntimeSnapshot",
+    "CandidateConflict", "CandidateSendResult", "FlashWriteState",
 ]

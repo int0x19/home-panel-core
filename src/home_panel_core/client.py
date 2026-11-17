@@ -1,4 +1,4 @@
-"""Read/check-only async client. There are deliberately no persistent write methods."""
+"""Bounded configuration client; candidate Send is explicit and never applies it."""
 
 import asyncio
 import hashlib
@@ -31,12 +31,14 @@ class PanelConfigClient:
         self._lock = asyncio.Lock()
 
     async def _request(self, method, suffix, *, state=None, body=None, raw=False,
-                       maximum=MAX_METADATA_BYTES, expected=200):
+                       maximum=MAX_METADATA_BYTES, expected=200, write_base=None):
         headers = {"Authorization": "Bearer " + self._token, "Accept": "application/json"}
         if state is not None:
             headers["X-Panel-Settings"] = state.session_id
             if method == "POST" and state.storage == "flash-nvs":
                 headers["X-Panel-Storage-Generation"] = state.storage_generation
+        if write_base is not None:
+            headers["X-Panel-Write-Base"] = digest(write_base)
         if body is not None:
             headers["Content-Type"] = "application/json"
             if raw:
@@ -82,17 +84,20 @@ class PanelConfigClient:
         """Read status/metadata under one lock and verify they describe the same boot."""
         try:
             async with asyncio.timeout(self._timeout), self._lock:
-                state = await self._status()
-                if "capabilities.v1" not in state.features:
-                    raise ProtocolError("Capability metadata is unavailable on this firmware")
-                response = await self._request("GET", "capabilities", state=state)
-                result = RuntimeCapabilities.parse(json_object(response.body))
-                if (result.device_id != state.device_id or result.session_id != state.session_id or
-                        result.limit("document_bytes") != state.max_bytes):
-                    raise ProtocolError("Capability identity/session/byte-limit guards disagree")
-                return RuntimeSnapshot(state, result)
+                return await self._snapshot()
         except TimeoutError:
             raise TransportError("Panel capability request timed out") from None
+
+    async def _snapshot(self):
+        state = await self._status()
+        if "capabilities.v1" not in state.features:
+            raise ProtocolError("Capability metadata is unavailable on this firmware")
+        response = await self._request("GET", "capabilities", state=state)
+        result = RuntimeCapabilities.parse(json_object(response.body))
+        if (result.device_id != state.device_id or result.session_id != state.session_id or
+                result.limit("document_bytes") != state.max_bytes):
+            raise ProtocolError("Capability identity/session/byte-limit guards disagree")
+        return RuntimeSnapshot(state, result)
 
     @staticmethod
     def _ready(state: RuntimeStatus, feature: str):
@@ -101,11 +106,16 @@ class PanelConfigClient:
         if state.busy or state.restarting:
             raise PanelHTTPError(429)
 
-    async def _job(self, kind, state, body, *, raw=False):
+    async def _job(self, kind, state, body, *, raw=False, candidate=False):
         try:
-            response = await self._request("POST", kind, state=state, body=body, raw=raw, expected=202)
+            response = await self._request("POST", kind, state=state, body=body, raw=raw, expected=202,
+                                           write_base=state.write_base_sha256 if candidate else None)
         except TransportError:
             raise OutcomeUnknown("Job submission outcome unknown; refresh status, do not retry") from None
+        except PanelHTTPError as error:
+            if not candidate or error.status in {400, 401, 403, 409, 413, 429}:
+                raise
+            raise OutcomeUnknown("Candidate submission was not verified; refresh status, do not retry") from None
         accepted = json_object(response.body)
         job_id = integer(accepted.get("id"), "job id", 1)
         if (not self._identity_matches(accepted, state) or accepted.get("session_id") != state.session_id or
@@ -118,15 +128,22 @@ class PanelConfigClient:
                 result = json_object((await self._request("GET", "jobs/" + str(job_id))).body)
             except TransportError:
                 raise OutcomeUnknown("Job receipt unavailable; refresh status, do not retry") from None
+            except PanelHTTPError:
+                if not candidate:
+                    raise
+                raise OutcomeUnknown("Candidate receipt unavailable; refresh status, do not retry") from None
+            revision = integer(result.get("revision"), "operation revision")
             if (not self._identity_matches(result, state) or integer(result.get("id"), "job id", 1) != job_id or
                     result.get("session_id") != state.session_id or
-                    integer(result.get("revision"), "operation revision") != state.revision):
+                    revision not in ({state.revision, state.revision + 1} if candidate else {state.revision})):
                 raise ProtocolError("Job identity/session/revision changed")
             done = boolean(result.get("done"), "job completion")
             status = integer(result.get("status"), "job status", 100, 599)
             if done:
                 if status == 202:
                     raise ProtocolError("Completed job is still pending")
+                if candidate and status == 200 and revision != state.revision + 1:
+                    raise ProtocolError("Candidate mutation revision did not advance")
                 return job_id, result
             if status != 202:
                 raise ProtocolError("Pending job has a final status")
@@ -145,37 +162,44 @@ class PanelConfigClient:
         try:
             async with asyncio.timeout(self._timeout), self._lock:
                 state = await self._status()
-                self._ready(state, "export.v1")
-                info = state.file(source)
-                if not state.storage_ready:
-                    raise PanelHTTPError(503)
-                if not info.valid:
-                    raise PanelHTTPError(409 if info.present else 404)
-                job_id, result = await self._job("export", state, {
-                    "revision": state.revision, "source": source, "sha256": info.sha256})
-                if result["status"] != 200:
-                    raise PanelHTTPError(result["status"])
-                path = API + "downloads/" + str(job_id)
-                if (result.get("download") != path or result.get("source") != source or
-                        digest(result.get("sha256")) != info.sha256 or
-                        integer(result.get("bytes"), "export bytes", 1, state.max_bytes) != info.bytes):
-                    raise ProtocolError("Export receipt guards disagree")
-                response = await self._request("GET", "downloads/" + str(job_id), state=state,
-                                               maximum=state.max_bytes)
-                if (response.header("X-Panel-Session") != state.session_id or
-                        response.header("X-Panel-SHA256") != info.sha256 or
-                        response.header("Content-Disposition") != f"attachment; filename=panel-{source}.json" or
-                        response.header("Content-Length") is None or len(response.body) != info.bytes or
-                        hashlib.sha256(response.body).hexdigest() != info.sha256):
-                    raise ProtocolError("Export content/header guards disagree")
-                document = json_object(response.body, state.max_bytes)
-                if (document.get("format") != "home-panel-runtime" or
-                        type(document.get("schema_version")) is not int or document["schema_version"] != 1 or
-                        integer(document.get("revision"), "document revision", 1, UINT32_MAX) != info.revision):
-                    raise ProtocolError("Unsupported or inconsistent document envelope")
-                return ExportedDocument(source, info.revision, info.sha256, response.body)
+                return await self._export(source, state)
         except TimeoutError:
             raise OutcomeUnknown("Export timed out; refresh status, do not retry") from None
+
+    async def _export(self, source, state):
+        self._ready(state, "export.v1")
+        info = state.file(source)
+        if not state.storage_ready:
+            raise PanelHTTPError(503)
+        if not info.valid:
+            raise PanelHTTPError(409 if info.present else 404)
+        job_id, result = await self._job("export", state, {
+            "revision": state.revision, "source": source, "sha256": info.sha256})
+        if result["status"] != 200:
+            raise PanelHTTPError(result["status"])
+        path = API + "downloads/" + str(job_id)
+        if (result.get("download") != path or result.get("source") != source or
+                digest(result.get("sha256")) != info.sha256 or
+                integer(result.get("bytes"), "export bytes", 1, state.max_bytes) != info.bytes):
+            raise ProtocolError("Export receipt guards disagree")
+        response = await self._request("GET", "downloads/" + str(job_id), state=state, maximum=state.max_bytes)
+        if (response.header("X-Panel-Session") != state.session_id or
+                response.header("X-Panel-SHA256") != info.sha256 or
+                response.header("Content-Disposition") != f"attachment; filename=panel-{source}.json" or
+                response.header("Content-Length") is None or len(response.body) != info.bytes or
+                hashlib.sha256(response.body).hexdigest() != info.sha256):
+            raise ProtocolError("Export content/header guards disagree")
+        document = json_object(response.body, state.max_bytes)
+        if (document.get("format") != "home-panel-runtime" or
+                type(document.get("schema_version")) is not int or document["schema_version"] != 1 or
+                integer(document.get("revision"), "document revision", 1, UINT32_MAX) != info.revision):
+            raise ProtocolError("Unsupported or inconsistent document envelope")
+        return ExportedDocument(source, info.revision, info.sha256, response.body)
+
+    async def send_candidate(self, data: bytes, *, expected: RuntimeSnapshot):
+        """Stage and read back exact bytes against the caller's imported baseline. Never Apply."""
+        from .candidate import send_candidate
+        return await send_candidate(self, data, expected)
 
     async def validate(self, data: bytes) -> ValidationResult:
         if not isinstance(data, bytes) or not data:

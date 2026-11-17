@@ -34,7 +34,11 @@ class IdentityMismatch(PanelError):
 
 
 class OutcomeUnknown(PanelError):
-    """An ephemeral job may have run; do not automatically resubmit it."""
+    """A job may have run, including candidate storage; do not resubmit automatically."""
+
+
+class CandidateConflict(PanelError):
+    """The imported baseline or existing candidate no longer permits this Send."""
 
 
 class PanelHTTPError(PanelError):
@@ -173,6 +177,29 @@ class FileInfo:
 
 
 @dataclass(frozen=True)
+class FlashWriteState:
+    writable: bool
+    pending_trial: bool
+    uncertain: bool
+    high_water_revision: int
+    storage_status: int
+    storage_warnings: int
+
+    @property
+    def ready(self) -> bool:
+        return (self.writable and not self.pending_trial and not self.uncertain and
+                self.storage_status == 0 and self.storage_warnings == 0)
+
+    @classmethod
+    def parse(cls, value):
+        keys = ("writable", "pending_trial", "uncertain", "high_water_revision", "storage_status", "storage_warnings")
+        if not all(key in value for key in keys):
+            return None  # Older/incomplete metadata stays readable, never send-ready.
+        return cls(*(boolean(value[key], key) for key in keys[:3]),
+                   *(integer(value[key], key, maximum=UINT32_MAX) for key in keys[3:]))
+
+
+@dataclass(frozen=True)
 class RuntimeStatus:
     session_id: str = field(repr=False)
     revision: int
@@ -191,6 +218,7 @@ class RuntimeStatus:
     storage_available: bool | None = None
     storage_generation: str | None = None
     write_base_sha256: str | None = None
+    flash_write: FlashWriteState | None = None
 
     @property
     def storage_ready(self) -> bool:
@@ -260,7 +288,8 @@ class RuntimeStatus:
                    boolean(value.get("dispatch_enabled"), "dispatch status"), loaded,
                    integer(value.get("loaded_revision"), "loaded document revision", maximum=UINT32_MAX), lifetime,
                    tuple(FileInfo.parse(value.get(key), maximum) for key in (*Source, "temporary")), device_id,
-                   storage, storage_ready, generation, write_base)
+                   storage, storage_ready, generation, write_base,
+                   FlashWriteState.parse(value) if storage == "flash-nvs" else None)
 
 
 @dataclass(frozen=True)
@@ -390,3 +419,12 @@ class ValidationResult:
     model_error: int
     document_revision: int
     rooms: int
+
+
+@dataclass(frozen=True)
+class CandidateSendResult:
+    revision: int
+    sha256: str
+    bytes: int
+    changed: bool
+    snapshot: RuntimeSnapshot
