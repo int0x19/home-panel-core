@@ -33,6 +33,12 @@
   generation without replay; preserve legacy read-only compatibility. Core
   source passes 52 tests. The firmware enforces the condition at its own writer;
   persistent ownership and HA Send/Apply remain separate. See [write base](docs/WRITE_BASE.md).
+- [x] Track the firmware's private owner-journal preparation (2026-11-17):
+  two-copy persistent epochs, Claim/Rotate/Release and a fresh leased native
+  write gate are host-tested. This adds no public endpoint or core writer and
+  does not enable managed readiness. Keep core/consumer 0.1.2 and the tested
+  functional source pin; next negotiate authenticated handover/scoped credentials
+  before adding HA Send/Apply. See [authority boundary](docs/WRITE_BASE.md#private-authority-backend).
 
 HA registry/editor work belongs to home-panel-ha. Native renderers, physical
 capacity, storage recovery and OTA acceptance belong to the firmware repository.

@@ -49,3 +49,26 @@ firmware passes 80 scoped flash HTTP/NVS/client cases (two optional skips),
 two loopback browser workflows. All 21 wheel files match the locked source.
 No full firmware sweep, physical OTA or release is implied. Documentation-only
 updates do not change the tested functional pin.
+
+## Private Authority Backend
+
+The subsequent firmware-only step adds two private NVS owner records and a
+fresh owner/epoch check under the config writer lease. Claim/Rotate/Release
+leave storage-v1 room records and the public read/check protocol unchanged;
+the preceding writer refuses the retained owner-key inventory on downgrade.
+This is not transparent old-firmware boot compatibility. Missing journals
+retain legacy local epoch zero. Damaged journals lock external writes rather
+than reviving old credentials; internal config boot/confirmation preserve them.
+
+There is no HTTP handover endpoint, public authority advertisement or HA writer
+yet. Core 0.1.2, its wheel and consumer pin
+`d414a7f2e7fb283d1c66c84bc1521da7cb345ad9` remain unchanged. Private native
+actor types are not a new JSON schema or a public client API. The firmware's
+`docs/RUNTIME_AUTHORITY.md` owns that implementation/failure contract.
+
+This documentation checkpoint reruns all 52 installed-core tests and 40 HA
+release/setup/lifecycle tests, plus scoped firmware/native/codegen and separate
+authority sanitizer checks. It neither repeats the full HA/browser suite nor
+changes published HA 0.1.1/running firmware. Next define and test authenticated
+HTTP handover, scoped keys, explicit local recovery and uncertainty handling;
+only then extend shared core/HA with guarded Send/Apply.
