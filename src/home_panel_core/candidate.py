@@ -47,7 +47,7 @@ def _model(data, snapshot):
     return report["revision"], report["sha256"]
 
 
-def _after_send(before, after, info):
+def _after_candidate_change(before, after, info, high_water_revision):
     state = after.status
     if (state.write_base_sha256 is None or state.write_base_sha256 == before.status.write_base_sha256 or
             before.capabilities != after.capabilities):
@@ -57,9 +57,9 @@ def _after_send(before, after, info):
     predicted = replace(before.status, revision=before.status.revision + 1,
         storage_generation=str(int(before.status.storage_generation) + 1),
         write_base_sha256=state.write_base_sha256, files=tuple(files),
-        flash_write=replace(before.status.flash_write, high_water_revision=info.revision))
+        flash_write=replace(before.status.flash_write, high_water_revision=high_water_revision))
     if state != predicted:
-        raise ProtocolError("Candidate storage changed beyond the acknowledged Stage")
+        raise ProtocolError("Storage changed beyond the acknowledged candidate operation")
 
 
 async def send_candidate(client, data: bytes, expected: RuntimeSnapshot) -> CandidateSendResult:
@@ -100,7 +100,7 @@ async def send_candidate(client, data: bytes, expected: RuntimeSnapshot) -> Cand
             if already_staged:
                 _same_import(before, after)
             else:
-                _after_send(before, after, info)
+                _after_candidate_change(before, after, info, revision)
             exported = await client._export(Source.CANDIDATE, after.status)
             if exported.data != data:
                 raise ProtocolError("Candidate readback differs from sent bytes")

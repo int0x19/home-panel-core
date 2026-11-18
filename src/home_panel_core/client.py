@@ -206,6 +206,16 @@ class PanelConfigClient:
         from .activation import apply_candidate
         return await apply_candidate(self, expected)
 
+    async def discard_candidate(self, *, expected: RuntimeSnapshot) -> RuntimeSnapshot:
+        """Remove the reviewed candidate reference after checking the original snapshot."""
+        from .maintenance import change_candidate
+        return await change_candidate(self, expected, Source.CANDIDATE)
+
+    async def recover_candidate(self, *, expected: RuntimeSnapshot) -> RuntimeSnapshot:
+        """Stage the reviewed backup at a new revision and verify the exported candidate."""
+        from .maintenance import change_candidate
+        return await change_candidate(self, expected, Source.BACKUP)
+
     async def inspect_activation(self, *, expected: RuntimeSnapshot):
         """Inspect one activation against the retained pre-Apply snapshot. Never retry Apply."""
         from .activation import inspect_activation

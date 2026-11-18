@@ -161,5 +161,19 @@ class HTTPTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
 
+    async def test_maintenance_opt_in_only_adds_discard_and_recover(self):
+        self.mode = "redirect"
+        transport = AiohttpTransport(self.session, "http://" + self.origin,
+                                     allow_candidate_maintenance=True)
+        for suffix in ("recover", "discard"):
+            with self.assertRaises(ValueError):
+                await self.transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
+            result = await transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
+            self.assertEqual(result.status, 302)
+        for suffix in ("restore", "apply", "upload", "scan"):
+            with self.assertRaises(ValueError):
+                await transport.request("POST", API + suffix, headers={}, body=b"{}", max_bytes=1024)
+        self.assertEqual(self.seen, [("POST", API + "recover"), ("POST", API + "discard")])
+
 
 if __name__ == "__main__": unittest.main()

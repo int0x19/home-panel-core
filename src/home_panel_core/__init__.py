@@ -12,6 +12,7 @@ def asset_path(name: str) -> Path:
     return Path(__file__).parent / "assets" / name
 
 from .client import PanelConfigClient
+from .maintenance import candidate_maintenance_available
 from .protocol import (
     ActivationResult, ActivationState, CandidateApplyReceipt, FlashBootState,
     CandidateConflict, CandidateSendResult, DecoderInventory, ExportedDocument, FileInfo, FlashWriteState, HTTPResponse, IdentityMismatch, OutcomeUnknown, PanelError,
@@ -26,4 +27,5 @@ __all__ = [
     "DecoderInventory", "IdentityMismatch", "RuntimeCapabilities", "RuntimeSnapshot",
     "CandidateConflict", "CandidateSendResult", "FlashWriteState",
     "ActivationResult", "ActivationState", "CandidateApplyReceipt", "FlashBootState",
+    "candidate_maintenance_available",
 ]
