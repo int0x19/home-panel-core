@@ -6,11 +6,12 @@ Reuse HA administrator authorization, the existing panel access credential and
 ESPHome state/action facilities. Core now supports bounded explicit Send-candidate
 through the current HTTP job API. The subsequent HA source exposes it through
 its administrator backend/editor. Core now also supports separate guarded
-Apply/activation inspection; next expose those operations in HA. Keep imported-base/session/generation/digest conflicts, validation
+Apply/activation inspection. The subsequent HA source now exposes both through
+its administrator/per-panel gate; next add guarded Discard/recovery. Keep imported-base/session/generation/digest conflicts, validation
 and no automatic replay. Persistent multi-controller ownership/scoped-key
 handover is deferred, not a prerequisite for this single-HA workflow. Its
-private native backend remains inactive; no public handover, HA Apply control
-or managed capability readiness is enabled. See firmware
+private native backend remains inactive; no public handover or managed
+capability readiness is enabled. See firmware
 `docs/IMPLEMENTATION_SCOPE.md` and the contract's scope correction below.
 
 ## Implementation History
@@ -81,5 +82,6 @@ consumer checks, with one optional skip and no ESP32 deployment. The subsequent
 HA Send extension shares the existing client/operation gate and tests the exact
 checked bytes, stale tabs, lost replies and unchanged UI. The Apply client slice
 now passes 79 installed-core, 232 HA and 114 scoped native checks (two optional
-sanitizer skips), without MCU code/OTA. Next expose Apply/inspection in HA; the
+sanitizer skips), without MCU code/OTA. The subsequent HA Apply workflow passes
+254 HA tests and retains the same functional pin. Next add Discard/recovery; the
 write-base guard is prepared and multi-controller ownership is deferred.

@@ -2,8 +2,9 @@
 
 Development 0.1.2 adds two explicit operations, using existing firmware status
 and HTTP Apply/export jobs. No new endpoint, boot mechanism, journal, renderer
-probe or ESP32 production code is needed. The current HA integration still
-enables only Send; its Apply backend/control is the next consumer step.
+probe or ESP32 production code is needed. The subsequent HA integration source
+now exposes explicit Apply and inspection through its existing administrator/
+per-panel gate; see companion `docs/HA_CANDIDATE_APPLY.md`.
 
 ## Request
 
@@ -81,7 +82,14 @@ that source. The firmware's scoped flash/NVS/client/legacy-read/decoder suite
 runs 116 cases: 114 pass and two optional sanitizer runs skip. Native frame/
 health signals are supplied by the host fixture, not a measured physical UI.
 The subsequent source-test-only loopback timeout adjustment changes no package
-file, wheel, consumer pin or version. HA still enables only Upload, not Apply.
+file, wheel, consumer pin or version. At that checkpoint HA enabled only Upload.
 
-Next connect request/inspection to HA's existing administrator/per-panel gate,
-keeping Send, Apply and observed activation distinct; then add Discard/recovery.
+The next HA checkpoint passes all 254 HA and 79 installed-core tests, including
+explicit Apply confirmation, success/lost reply/rollback, cached-state freshness,
+stale tabs, unload/reload, actual WS/HTTP and Chromium. One intent/last observation
+is retained, not JSON or a new background controller. Pairing stays read-only;
+paired clients opt into Apply separately. No core package change, pin movement,
+physical acceptance, OTA or publication is implied by this documentation update.
+
+Next add guarded Discard/recovery, keeping Send, Apply and observed activation
+distinct and the native/physical acceptance gates independent.
