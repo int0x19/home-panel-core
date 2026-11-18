@@ -235,9 +235,27 @@ storage only; see [candidate Send](CANDIDATE_SEND.md). Its transport requires
 `allow_candidate_upload=True` and adds only Upload. The subsequent
 [Apply slice](CANDIDATE_APPLY.md) adds `apply_candidate(expected=...)` and
 `inspect_activation(expected=...)`, with a separate `allow_candidate_apply=True`
-transport option. Restore/discard/scan/actuator methods remain excluded. HA opts its
-paired client into Upload only, behind its administrator/import/check gate.
+transport option. Paired HA clients use explicit options for Upload, Apply and
+candidate maintenance behind the administrator and import gates. Restore, Scan
+and actuator methods remain excluded.
 The transport allowlist enforces the boundary independently of the client.
+
+### Flash Candidate Maintenance
+
+`discard_candidate(expected=...)` removes the reviewed staged reference.
+`recover_candidate(expected=...)` stages the reviewed backup with revision
+equal to the flash high-water revision plus one. Both use the existing flash
+jobs with `allow_candidate_maintenance=True` and a paired device identity.
+They require healthy writable storage and the original snapshot. Recovery
+additionally requires `recover-candidate.v1`, a valid backup and an empty
+candidate slot.
+
+The client verifies the operation receipt, generation advance and resulting
+metadata. Discard preserves the high-water revision. Recovery verifies the
+candidate receipt and exports the staged document to check that only the
+revision changed. Both preserve the active and backup records and the loaded
+configuration. Apply remains a separate request. After an uncertain response,
+read status and review the current files before making another decision.
 
 - One client serializes complete operations; the integration owns one
   client per paired panel, not one per browser. Other clients can still replace

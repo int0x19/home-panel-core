@@ -7,7 +7,9 @@ ESPHome state/action facilities. Core now supports bounded explicit Send-candida
 through the current HTTP job API. The subsequent HA source exposes it through
 its administrator backend/editor. Core now also supports separate guarded
 Apply/activation inspection. The subsequent HA source now exposes both through
-its administrator/per-panel gate; next add guarded Discard/recovery. Keep imported-base/session/generation/digest conflicts, validation
+its administrator/per-panel gate. Discard and backup staging now use the same
+gate and exact flash checks. Next verify the complete workflow on the panel.
+Keep imported-base/session/generation/digest conflicts, validation
 and no automatic replay. Persistent multi-controller ownership/scoped-key
 handover is deferred, not a prerequisite for this single-HA workflow. Its
 private native backend remains inactive; no public handover or managed
@@ -83,5 +85,6 @@ HA Send extension shares the existing client/operation gate and tests the exact
 checked bytes, stale tabs, lost replies and unchanged UI. The Apply client slice
 now passes 79 installed-core, 232 HA and 114 scoped native checks (two optional
 sanitizer skips), without MCU code/OTA. The subsequent HA Apply workflow passes
-254 HA tests and retains the same functional pin. Next add Discard/recovery; the
+254 HA tests and retains the same functional pin. The candidate maintenance
+step adds a separate transport opt-in and verifies exact backup staging. The
 write-base guard is prepared and multi-controller ownership is deferred.

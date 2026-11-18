@@ -91,5 +91,5 @@ is retained, not JSON or a new background controller. Pairing stays read-only;
 paired clients opt into Apply separately. No core package change, pin movement,
 physical acceptance, OTA or publication is implied by this documentation update.
 
-Next add guarded Discard/recovery, keeping Send, Apply and observed activation
-distinct and the native/physical acceptance gates independent.
+The configuration contract now covers guarded Discard and backup staging.
+Next verify the complete workflow on the panel with the matching HA package.
